@@ -19,6 +19,8 @@ class UserCreate(UserBase):
 
 class UserUpdate(BaseModel):
     """Schema for updating a user"""
+    username: Optional[str] = None
+    role: Optional[str] = Field(None, pattern="^(admin|monitoramento|execucao|campo)$")
     nome: Optional[str] = None
     password: Optional[str] = None
 

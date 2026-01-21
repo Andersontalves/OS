@@ -182,6 +182,42 @@ class APIClient {
 
         return this.handleResponse(response);
     }
+
+    /**
+     * Gestão de Usuários (Admin only)
+     */
+    async getUsuarios() {
+        const response = await fetch(`${API_BASE_URL}/usuarios`, {
+            headers: this.getHeaders(),
+        });
+        return this.handleResponse(response);
+    }
+
+    async createUsuario(userData) {
+        const response = await fetch(`${API_BASE_URL}/usuarios`, {
+            method: 'POST',
+            headers: this.getHeaders(),
+            body: JSON.stringify(userData),
+        });
+        return this.handleResponse(response);
+    }
+
+    async updateUsuario(id, userData) {
+        const response = await fetch(`${API_BASE_URL}/usuarios/${id}`, {
+            method: 'PATCH',
+            headers: this.getHeaders(),
+            body: JSON.stringify(userData),
+        });
+        return this.handleResponse(response);
+    }
+
+    async deleteUsuario(id) {
+        const response = await fetch(`${API_BASE_URL}/usuarios/${id}`, {
+            method: 'DELETE',
+            headers: this.getHeaders(),
+        });
+        return this.handleResponse(response);
+    }
 }
 
 // Create global instance

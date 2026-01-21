@@ -10,7 +10,7 @@ from .config import get_settings
 from .database import engine, Base, SessionLocal
 from .models.user import User
 from .services.auth_service import hash_password
-from .routes import auth, os as os_routes, relatorios
+from .routes import auth, os as os_routes, relatorios, usuarios
 
 settings = get_settings()
 
@@ -61,6 +61,7 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(os_routes.router, prefix="/api/v1")
 app.include_router(relatorios.router, prefix="/api/v1")
+app.include_router(usuarios.router, prefix="/api/v1")
 
 # Serve Static Files (Frontend)
 frontend_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "frontend")

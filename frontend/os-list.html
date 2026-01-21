@@ -19,6 +19,7 @@
                 <div class="navbar-links">
                     <a href="dashboard.html" class="navbar-link">Dashboard</a>
                     <a href="os-list.html" class="navbar-link active">Ordens de Serviço</a>
+                    <a href="users.html" class="navbar-link hidden" id="nav-users">Gerenciar Equipe</a>
                     <span class="navbar-link" style="color: var(--text-primary);" id="user-name"></span>
                     <button class="btn btn-sm btn-secondary" id="logout-btn">Sair</button>
                 </div>
@@ -64,6 +65,12 @@
             <h3 class="text-muted">Nenhuma O.S encontrada</h3>
             <p class="text-muted">Tente ajustar os filtros ou aguarde novas ordens de serviço.</p>
         </div>
+
+        <div class="text-center mt-5 mb-4">
+            <p class="text-muted" style="font-size: 0.85rem;">
+                Criado e desenvolvido por Anderson Tadeu Alves
+            </p>
+        </div>
     </div>
 
     <!-- Modal for OS Details -->
@@ -96,6 +103,11 @@
 
         const user = api.getUser();
         document.getElementById('user-name').textContent = user.nome || user.username;
+
+        // Show team management if admin
+        if (user.role === 'admin') {
+            document.getElementById('nav-users').classList.remove('hidden');
+        }
 
         // Logout
         document.getElementById('logout-btn').addEventListener('click', () => {

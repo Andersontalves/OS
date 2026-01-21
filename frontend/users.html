@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Equipe - Sistema O.S</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-content">
+                <div class="navbar-brand">
+                    🔧 Sistema O.S
+                </div>
+                <div class="navbar-links">
+                    <a href="dashboard.html" class="navbar-link">Dashboard</a>
+                    <a href="os-list.html" class="navbar-link">Ordens de Serviço</a>
+                    <a href="users.html" class="navbar-link active">Gerenciar Equipe</a>
+                    <span class="navbar-link" style="color: var(--text-primary);" id="user-name"></span>
+                    <button class="btn btn-sm btn-secondary" id="logout-btn">Sair</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container" style="padding: 2rem 1rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h1 style="margin: 0;">Gerenciar Equipe</h1>
+            <button class="btn btn-primary" id="add-user-btn">➕ Novo Usuário</button>
+        </div>
+
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+        </div>
+
+        <div id="users-list-container" class="hidden">
+            <!-- User list will be inserted here -->
+        </div>
+
+        <div class="text-center mt-5 mb-4">
+            <p class="text-muted" style="font-size: 0.85rem;">
+                Criado e desenvolvido por Anderson Tadeu Alves
+            </p>
+        </div>
+    </div>
+
+    <!-- Modal for User Add/Edit -->
+    <div id="user-modal" class="hidden"
+        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; overflow-y: auto;">
+        <div class="container" style="padding: 2rem 1rem;">
+            <div class="card" style="max-width: 500px; margin: 0 auto;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <h2 style="margin: 0;" id="modal-title">Novo Usuário</h2>
+                    <button class="btn btn-secondary" id="close-modal-btn">✕</button>
+                </div>
+
+                <form id="user-form">
+                    <input type="hidden" id="user-id">
+
+                    <div class="form-group">
+                        <label for="username">Usuário (Login) *</label>
+                        <input type="text" id="username" required minlength="3">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="nome">Nome Completo</label>
+                        <input type="text" id="nome">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="role">Cargo / Perfil *</label>
+                        <select id="role" required>
+                            <option value="execucao">Técnico (Execução)</option>
+                            <option value="monitoramento">Monitoramento</option>
+                            <option value="admin">Administrador</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Senha *</label>
+                        <input type="text" id="password" required minlength="6" placeholder="Mínimo 6 caracteres">
+                        <small class="text-muted" id="password-help">Para novos usuários, a senha é obrigatória.</small>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
+                        <button type="button" class="btn btn-secondary" id="cancel-modal-btn">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" id="save-user-btn">Salvar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        // Auth guard (Admin only)
+        if (!requireAuth() || !hasRole('admin')) {
+            window.location.href = 'dashboard.html';
+            throw new Error('Not authorized');
+        }
+
+        const currentUser = api.getUser();
+        document.getElementById('user-name').textContent = currentUser.nome || currentUser.username;
+
+        // Logout
+        document.getElementById('logout-btn').addEventListener('click', () => api.logout());
+
+        // Load users list
+        async function loadUsers() {
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('users-list-container').classList.add('hidden');
+
+            try {
+                const users = await api.getUsuarios();
+                renderUsers(users);
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('users-list-container').classList.remove('hidden');
+            } catch (error) {
+                console.error('Error loading users:', error);
+                alert('Erro ao carregar usuários: ' + error.message);
+            }
+        }
+
+        function renderUsers(users) {
+            const container = document.getElementById('users-list-container');
+            const labels = {
+                'admin': 'Administrador',
+                'monitoramento': 'Monitoramento',
+                'execucao': 'Técnico'
+            };
+
+            container.innerHTML = `
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Usuário</th>
+                                <th>Nome</th>
+                                <th>Cargo</th>
+                                <th>Criado em</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${users.map(u => `
+                                <tr>
+                                    <td><strong>${u.username}</strong></td>
+                                    <td>${u.nome || '-'}</td>
+                                    <td><span class="badge badge-info">${labels[u.role] || u.role}</span></td>
+                                    <td>${new Date(u.created_at).toLocaleDateString('pt-BR')}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary" onclick="editUser(${JSON.stringify(u).replace(/"/g, '&quot;')})">Editar</button>
+                                        ${u.id !== currentUser.id ? `<button class="btn btn-sm btn-danger" onclick="deleteUser(${u.id})">Excluir</button>` : ''}
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        // Modal Logic
+        const modal = document.getElementById('user-modal');
+        const userForm = document.getElementById('user-form');
+
+        document.getElementById('add-user-btn').addEventListener('click', () => {
+            document.getElementById('modal-title').textContent = 'Novo Usuário';
+            document.getElementById('user-id').value = '';
+            userForm.reset();
+            document.getElementById('password').required = true;
+            document.getElementById('password-help').textContent = 'A senha é obrigatória para novos usuários.';
+            modal.classList.remove('hidden');
+        });
+
+        window.editUser = function (user) {
+            document.getElementById('modal-title').textContent = 'Editar Usuário';
+            document.getElementById('user-id').value = user.id;
+            document.getElementById('username').value = user.username;
+            document.getElementById('nome').value = user.nome || '';
+            document.getElementById('role').value = user.role;
+            document.getElementById('password').value = ''; // Leave blank if no change
+            document.getElementById('password').required = false;
+            document.getElementById('password-help').textContent = 'Deixe em branco para manter a senha atual.';
+            modal.classList.remove('hidden');
+        };
+
+        userForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('user-id').value;
+            const userData = {
+                username: document.getElementById('username').value,
+                nome: document.getElementById('nome').value,
+                role: document.getElementById('role').value
+            };
+            const password = document.getElementById('password').value;
+            if (password) userData.password = password;
+
+            try {
+                if (id) {
+                    await api.updateUsuario(id, userData);
+                    alert('Usuário atualizado com sucesso!');
+                } else {
+                    await api.createUsuario(userData);
+                    alert('Usuário criado com sucesso!');
+                }
+                closeModal();
+                loadUsers();
+            } catch (error) {
+                alert('Erro ao salvar usuário: ' + error.message);
+            }
+        });
+
+        window.deleteUser = async function (id) {
+            if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
+            try {
+                await api.deleteUsuario(id);
+                loadUsers();
+            } catch (error) {
+                alert('Erro ao excluir usuário: ' + error.message);
+            }
+        };
+
+        function closeModal() {
+            modal.classList.add('hidden');
+        }
+
+        document.getElementById('close-modal-btn').addEventListener('click', closeModal);
+        document.getElementById('cancel-modal-btn').addEventListener('click', closeModal);
+
+        loadUsers();
+    </script>
+</body>
+
+</html>
