@@ -4,20 +4,46 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import os
+from contextlib import asynccontextmanager
+from sqlalchemy.orm import Session
 from .config import get_settings
-from .database import engine, Base
+from .database import engine, Base, SessionLocal
+from .models.user import User
+from .services.auth_service import hash_password
 from .routes import auth, os as os_routes, relatorios
 
 settings = get_settings()
 
-# Create database tables
-Base.metadata.create_all(bind=engine)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Inicializa o banco de dados e cria usuários padrão
+    Base.metadata.create_all(bind=engine)
+    db = SessionLocal()
+    try:
+        # Verifica se já existem usuários
+        if db.query(User).count() == 0:
+            print("🆕 Criando usuários padrão...")
+            users = [
+                User(username="admin", password_hash=hash_password("admin123"), role="admin"),
+                User(username="monitor", password_hash=hash_password("monitor123"), role="monitor"),
+                User(username="tecnico1", password_hash=hash_password("tecnico123"), role="execucao")
+            ]
+            db.add_all(users)
+            db.commit()
+            print("✅ Usuários padrão criados com sucesso!")
+    except Exception as e:
+        print(f"❌ Erro ao inicializar banco: {e}")
+    finally:
+        db.close()
+    
+    yield
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="Sistema de Ordens de Serviço",
+    title="Sistema de Ordens de Serviço API",
     description="API para gestão de ordens de serviço com integração Telegram",
     version="1.0.0",
+    lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc"
 )
