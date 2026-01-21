@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse
 import os
 from .config import get_settings
 from .database import engine, Base
-from .routes import auth, os, relatorios
+from .routes import auth, os as os_routes, relatorios
 
 settings = get_settings()
 
@@ -33,7 +33,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth.router, prefix="/api/v1")
-app.include_router(os.router, prefix="/api/v1")
+app.include_router(os_routes.router, prefix="/api/v1")
 app.include_router(relatorios.router, prefix="/api/v1")
 
 # Serve Static Files (Frontend)
