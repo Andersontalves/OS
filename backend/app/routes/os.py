@@ -77,6 +77,9 @@ def create_os(
         localizacao_precisao=os_data.localizacao_precisao,
         print_os_cliente=os_data.print_os_cliente,
         pppoe_cliente=os_data.pppoe_cliente,
+        motivo_abertura=os_data.motivo_abertura,
+        telegram_nick=os_data.telegram_nick,
+        telegram_phone=os_data.telegram_phone,
         status="aguardando"
     )
     
@@ -395,6 +398,9 @@ def _format_os_response(os: OrdemServico) -> OrdemServicoResponse:
         localizacao_precisao=os.localizacao_precisao,
         print_os_cliente=os.print_os_cliente,
         pppoe_cliente=os.pppoe_cliente,
+        motivo_abertura=os.motivo_abertura,
+        telegram_nick=os.telegram_nick,
+        telegram_phone=os.telegram_phone,
         foto_comprovacao=os.foto_comprovacao,
         observacoes=os.observacoes,
         criado_em=os.criado_em,

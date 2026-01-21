@@ -27,6 +27,11 @@ class OrdemServico(Base):
     print_os_cliente = Column(Text, nullable=False)  # URL Cloudinary
     pppoe_cliente = Column(String(100), nullable=False)
     
+    # Novos campos solicitados
+    motivo_abertura = Column(String(50), nullable=True) # Caixa sem sinal, Ampliação, etc
+    telegram_nick = Column(String(100), nullable=True)
+    telegram_phone = Column(String(20), nullable=True)
+    
     # Status e controle
     status = Column(
         String(20),

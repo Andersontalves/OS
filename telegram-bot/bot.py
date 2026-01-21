@@ -34,13 +34,14 @@ logger = logging.getLogger(__name__)
 
 # Conversation states
 (
+    MOTIVO,
     POWER_METER,
     CAIXA,
     LOCALIZACAO,
     PRINT_OS,
     PPPOE,
     CONFIRMACAO
-) = range(6)
+) = range(7)
 
 # User data for each technician (temporary storage)
 TECNICO_ID_DEFAULT = 1  # Usar admin (ID 1) para testes se campo1 não existir
@@ -239,21 +240,50 @@ async def receive_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     precision_text = f"{accuracy:.1f}m" if accuracy else "N/A"
     
-    # Cancel keyboard for during flow
-    cancel_kb = ReplyKeyboardMarkup(
-        [[KeyboardButton("❌ Cancelar Operação")]], 
-        resize_keyboard=True,
-        one_time_keyboard=False
+    # Store user info for OS owner
+    user = update.effective_user
+    context.user_data["telegram_nick"] = f"@{user.username}" if user.username else user.full_name
+    # Note: Phone number is only available if user shares contact or we have it. 
+    # For now we'll save simple nick and allow phone if provided in future.
+    # user.contact is only for reply with contact button.
+    
+    # Question about Reason
+    motivo_keyboard = ReplyKeyboardMarkup(
+        [["Caixa sem sinal", "Ampliação de atendimento"],
+         ["❌ Cancelar Operação"]],
+        one_time_keyboard=True,
+        resize_keyboard=True
     )
 
     await update.message.reply_text(
         f"✅ Localização confirmada! Precisão: *{precision_text}*\n\n"
-        "2️⃣ Agora envie a foto do *POWER METER* com o sinal visível.\n\n"
-        "⚠️ O valor *NÃO pode estar acima de -21.00 dBm*.",
-        reply_markup=cancel_kb,
-        parse_mode="Markdown"
+        "2️⃣ Qual o *MOTIVO* da abertura desta O.S?",
+        parse_mode="Markdown",
+        reply_markup=motivo_keyboard
     )
+    return MOTIVO
+
+
+async def receive_motivo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Receive and process the reason for OS opening"""
+    motivo = update.message.text
+    if motivo not in ["Caixa sem sinal", "Ampliação de atendimento"]:
+        await update.message.reply_text("Por favor, escolha uma das opções abaixo.")
+        return MOTIVO
+        
+    context.user_data["motivo_abertura"] = motivo
     
+    cancel_kb = ReplyKeyboardMarkup(
+        [[KeyboardButton("❌ Cancelar Operação")]], 
+        resize_keyboard=True
+    )
+
+    await update.message.reply_text(
+        f"✅ Motivo registrado: *{motivo}*\n\n"
+        "3️⃣ Agora envie a foto do *POWER METER*...",
+        parse_mode="Markdown",
+        reply_markup=cancel_kb
+    )
     return POWER_METER
 
 
@@ -347,10 +377,8 @@ async def confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         try:
             # Prepare data for API
+            # Prepare data for API
             os_data = {
-                "tipo_servico": "INSTALACAO",
-                "descricao": "Abertura via Bot Telegram",
-                "prioridade": "NORMAL",
                 "tecnico_campo_id": TECNICO_ID_DEFAULT,
                 "foto_power_meter": context.user_data["foto_power_meter"],
                 "foto_caixa": context.user_data["foto_caixa"],
@@ -358,7 +386,10 @@ async def confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "localizacao_lng": context.user_data["localizacao_lng"],
                 "localizacao_precisao": context.user_data.get("localizacao_precisao"),
                 "print_os_cliente": context.user_data["print_os_cliente"],
-                "pppoe_cliente": context.user_data["pppoe_cliente"]
+                "pppoe_cliente": context.user_data["pppoe_cliente"],
+                "motivo_abertura": context.user_data.get("motivo_abertura"),
+                "telegram_nick": context.user_data.get("telegram_nick"),
+                "telegram_phone": context.user_data.get("telegram_phone")
             }
             
             # Create OS via API
@@ -426,12 +457,13 @@ def main():
             MessageHandler(filters.Regex("^📋 Abrir Nova O.S.$"), abrir_os)
         ],
         states={
+            LOCALIZACAO: [MessageHandler(filters.LOCATION, receive_location)],
+            MOTIVO: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.Regex("^❌"), receive_motivo)],
             POWER_METER: [MessageHandler(filters.PHOTO, receive_power_meter)],
             CAIXA: [MessageHandler(filters.PHOTO, receive_caixa)],
-            LOCALIZACAO: [MessageHandler(filters.LOCATION, receive_location)],
             PRINT_OS: [MessageHandler(filters.PHOTO, receive_print_os)],
-            PPPOE: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_pppoe)],
-            CONFIRMACAO: [MessageHandler(filters.TEXT & ~filters.COMMAND, confirmation)],
+            PPPOE: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.Regex("^❌"), receive_pppoe)],
+            CONFIRMACAO: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.Regex("^❌"), confirmation)],
         },
         fallbacks=[
             CommandHandler("cancelar", cancel),

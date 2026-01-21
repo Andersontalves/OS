@@ -207,6 +207,17 @@
                         </div>
                     </div>
 
+                    <div class="grid grid-2 mb-3">
+                        <div>
+                            <strong>Motivo Abertura:</strong><br>
+                            <span class="badge badge-info">${os.motivo_abertura || 'Não informado'}</span>
+                        </div>
+                        <div>
+                            <strong>Telegram Solicitante:</strong><br>
+                            ${os.telegram_nick || 'N/A'} ${os.telegram_phone ? `(${os.telegram_phone})` : ''}
+                        </div>
+                    </div>
+
                     <div class="mb-3">
                         <strong>Localização:</strong><br>
                         ${os.localizacao_lat && os.localizacao_lng

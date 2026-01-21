@@ -21,6 +21,9 @@ class OrdemServicoCreate(BaseModel):
     localizacao_precisao: Optional[Decimal] = None
     print_os_cliente: str  # URL
     pppoe_cliente: str = Field(..., max_length=100)
+    motivo_abertura: Optional[str] = None
+    telegram_nick: Optional[str] = None
+    telegram_phone: Optional[str] = None
 
 
 class OrdemServicoUpdate(BaseModel):
@@ -69,6 +72,9 @@ class OrdemServicoResponse(BaseModel):
     localizacao_precisao: Optional[Decimal]
     print_os_cliente: str
     pppoe_cliente: str
+    motivo_abertura: Optional[str] = None
+    telegram_nick: Optional[str] = None
+    telegram_phone: Optional[str] = None
     foto_comprovacao: Optional[str] = None
     observacoes: Optional[str] = None
     
