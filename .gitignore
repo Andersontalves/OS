@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.env
+db.sqlite3
+os_database.db
+
+# Environments
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+
+# Local scripts
+backend/fix_users.py
+backend/check_db.py
+backend/reset_admin.py
+backend/rename_campo_to_interno.py
+backend/verify_jwt.py
+backend/test_api_os.py
+fix_envs.py

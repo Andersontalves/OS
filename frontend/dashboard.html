@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Sistema O.S</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-content">
+                <div class="navbar-brand">
+                    🔧 Sistema O.S
+                </div>
+                <div class="navbar-links">
+                    <a href="dashboard.html" class="navbar-link active">Dashboard</a>
+                    <a href="os-list.html" class="navbar-link">Ordens de Serviço</a>
+                    <span class="navbar-link" style="color: var(--text-primary);" id="user-name"></span>
+                    <button class="btn btn-sm btn-secondary" id="logout-btn">Sair</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container" style="padding: 2rem 1rem;">
+        <h1 class="mb-4">Dashboard</h1>
+
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+        </div>
+
+        <div id="dashboard-content" class="hidden">
+            <!-- Stats Cards -->
+            <div class="grid grid-4 mb-4">
+                <div class="card">
+                    <div class="text-muted" style="font-size: 0.85rem; margin-bottom: 0.5rem;">Aguardando</div>
+                    <h2 style="color: var(--warning); margin-bottom: 0;" id="stat-aguardando">0</h2>
+                </div>
+                <div class="card">
+                    <div class="text-muted" style="font-size: 0.85rem; margin-bottom: 0.5rem;">Em Andamento</div>
+                    <h2 style="color: var(--warning); margin-bottom: 0;" id="stat-em-andamento">0</h2>
+                </div>
+                <div class="card">
+                    <div class="text-muted" style="font-size: 0.85rem; margin-bottom: 0.5rem;">Concluído</div>
+                    <h2 style="color: var(--success); margin-bottom: 0;" id="stat-concluido">0</h2>
+                </div>
+                <div class="card">
+                    <div class="text-muted" style="font-size: 0.85rem; margin-bottom: 0.5rem;">Total</div>
+                    <h2 style="margin-bottom: 0;" id="stat-total">0</h2>
+                </div>
+            </div>
+
+            <!-- Metrics Cards -->
+            <div class="grid grid-3 mb-4">
+                <div class="card">
+                    <div class="text-muted" style="font-size: 0.85rem; margin-bottom: 0.5rem;">⏱️ Tempo Médio de Espera
+                    </div>
+                    <h3 style="margin-bottom: 0;" id="metric-espera">-</h3>
+                </div>
+                <div class="card">
+                    <div class="text-muted" style="font-size: 0.85rem; margin-bottom: 0.5rem;">⚡ Tempo Médio de Execução
+                    </div>
+                    <h3 style="margin-bottom: 0;" id="metric-execucao">-</h3>
+                </div>
+                <div class="card">
+                    <div class="text-muted" style="font-size: 0.85rem; margin-bottom: 0.5rem;">📊 Tempo Total Médio
+                    </div>
+                    <h3 style="margin-bottom: 0;" id="metric-total">-</h3>
+                </div>
+            </div>
+
+            <!-- Technicians Stats -->
+            <div class="card">
+                <h3 class="mb-3">📈 Estatísticas por Técnico</h3>
+                <div id="tecnico-stats-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        // Auth guard
+        if (!requireAuth()) {
+            throw new Error('Not authenticated');
+        }
+
+        // Display user name
+        const user = api.getUser();
+        document.getElementById('user-name').textContent = user.nome || user.username;
+
+        // Logout
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            api.logout();
+        });
+
+        // Load dashboard data
+        async function loadDashboard() {
+            try {
+                const data = await api.getDashboard();
+
+                // Update stats
+                document.getElementById('stat-aguardando').textContent = data.totais.aguardando;
+                document.getElementById('stat-em-andamento').textContent = data.totais.em_andamento;
+                document.getElementById('stat-concluido').textContent = data.totais.concluido;
+                document.getElementById('stat-total').textContent = data.totais.total;
+
+                // Update metrics
+                document.getElementById('metric-espera').textContent =
+                    data.metricas.tempo_medio_espera_min
+                        ? `${Math.round(data.metricas.tempo_medio_espera_min)} min`
+                        : 'N/A';
+
+                document.getElementById('metric-execucao').textContent =
+                    data.metricas.tempo_medio_execucao_min
+                        ? `${Math.round(data.metricas.tempo_medio_execucao_min)} min`
+                        : 'N/A';
+
+                document.getElementById('metric-total').textContent =
+                    data.metricas.tempo_medio_total_min
+                        ? `${Math.round(data.metricas.tempo_medio_total_min)} min`
+                        : 'N/A';
+
+                // Update technician stats
+                const statsContainer = document.getElementById('tecnico-stats-container');
+
+                if (data.por_tecnico.length === 0) {
+                    statsContainer.innerHTML = '<p class="text-muted">Nenhum técnico com serviços concluídos ainda.</p>';
+                } else {
+                    statsContainer.innerHTML = `
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Técnico</th>
+                                        <th>Total Concluídas</th>
+                                        <th>Tempo Médio Execução</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${data.por_tecnico.map(t => `
+                                        <tr>
+                                            <td><strong>${t.tecnico_nome}</strong></td>
+                                            <td>${t.total_concluidas}</td>
+                                            <td>${t.tempo_medio_execucao_min ? Math.round(t.tempo_medio_execucao_min) + ' min' : 'N/A'}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                }
+
+                // Show content, hide loading
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('dashboard-content').classList.remove('hidden');
+
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                document.getElementById('loading').innerHTML = `
+                    <div class="alert alert-error">
+                        Erro ao carregar dashboard: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Load on page load
+        loadDashboard();
+    </script>
+</body>
+
+</html>
