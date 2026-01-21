@@ -41,7 +41,12 @@ def create_os_via_api(os_data: dict) -> dict:
     """
     try:
         # 1. Login to get token
-        base_url = config.API_ENDPOINT_CREATE_OS.replace("/os", "") # e.g. http://localhost:8000/api/v1
+        # Safe way to get base API URL from the endpoint
+        if config.API_ENDPOINT_CREATE_OS.endswith("/os"):
+            base_url = config.API_ENDPOINT_CREATE_OS[:-3]
+        else:
+            base_url = config.API_ENDPOINT_CREATE_OS
+            
         auth_url = f"{base_url}/auth/login"
         
         login_response = requests.post(

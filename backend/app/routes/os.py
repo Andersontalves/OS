@@ -138,8 +138,8 @@ def list_os(
             id=os.id,
             numero_os=os.numero_os,
             status=os.status,
-            tecnico_campo_nome=os.tecnico_campo.nome if os.tecnico_campo else None,
-            tecnico_executor_nome=os.tecnico_executor.nome if os.tecnico_executor else None,
+            tecnico_campo_nome=(os.tecnico_campo.nome or os.tecnico_campo.username) if os.tecnico_campo else None,
+            tecnico_executor_nome=(os.tecnico_executor.nome or os.tecnico_executor.username) if os.tecnico_executor else None,
             criado_em=os.criado_em,
             pppoe_cliente=os.pppoe_cliente
         )

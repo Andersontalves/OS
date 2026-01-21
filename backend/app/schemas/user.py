@@ -7,7 +7,7 @@ from datetime import datetime
 class UserBase(BaseModel):
     """Base user schema"""
     username: str = Field(..., min_length=3, max_length=100)
-    role: str = Field(..., pattern="^(admin|monitoramento|execucao|campo)$")
+    role: str = Field(..., pattern="^(admin|monitor|monitoramento|execucao|campo)$")
     nome: Optional[str] = Field(None, max_length=150)
     telegram_id: Optional[int] = None
 
@@ -20,7 +20,7 @@ class UserCreate(UserBase):
 class UserUpdate(BaseModel):
     """Schema for updating a user"""
     username: Optional[str] = None
-    role: Optional[str] = Field(None, pattern="^(admin|monitoramento|execucao|campo)$")
+    role: Optional[str] = Field(None, pattern="^(admin|monitor|monitoramento|execucao|campo)$")
     nome: Optional[str] = None
     password: Optional[str] = None
 
