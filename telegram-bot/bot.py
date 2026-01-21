@@ -10,6 +10,9 @@ Fluxo de conversação:
 6. Confirmação e envio
 """
 import logging
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import os
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton
 from telegram.ext import (
     Application,
@@ -447,5 +450,25 @@ def main():
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/plain')
+        self.end_headers()
+        self.wfile.write(b"Bot is alive!")
+
+    def log_message(self, format, *args):
+        return  # Silenciar logs do servidor health check
+
+
+def run_health_check_server():
+    port = int(os.environ.get("PORT", "10000"))
+    server = HTTPServer(('0.0.0.0', port), HealthCheckHandler)
+    logger.info(f"📡 Health check server rodando na porta {port}")
+    server.serve_forever()
+
+
 if __name__ == "__main__":
+    # Inicia o servidor de health check em uma thread separada para o Render
+    threading.Thread(target=run_health_check_server, daemon=True).start()
     main()
