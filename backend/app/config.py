@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables"""
     
     # Database
-    database_url: str = "postgresql://user:password@localhost:5432/os_db"
+    database_url: str = "sqlite:///./os_database.db"
     
     # JWT
     jwt_secret: str = "seu_secret_super_seguro_aqui_minimo_32_caracteres"
