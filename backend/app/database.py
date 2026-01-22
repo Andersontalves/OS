@@ -5,11 +5,27 @@ from .config import get_settings
 
 settings = get_settings()
 
+# Detecta se é Postgres para configurar pool adequadamente
+is_postgres = "postgresql" in settings.database_url.lower()
+
+# Configurações do engine
+engine_kwargs = {
+    "pool_pre_ping": True,  # Verify connections before using
+    "echo": False  # Log SQL queries (disable in production)
+}
+
+# Configurações específicas para Postgres
+if is_postgres:
+    engine_kwargs.update({
+        "pool_size": 5,
+        "max_overflow": 10,
+        "pool_recycle": 3600,  # Recycle connections after 1 hour
+    })
+
 # Create SQLAlchemy engine
 engine = create_engine(
     settings.database_url,
-    pool_pre_ping=True,  # Verify connections before using
-    echo=True  # Log SQL queries (disable in production)
+    **engine_kwargs
 )
 
 # Create SessionLocal class
