@@ -25,7 +25,8 @@ from telegram.ext import (
     filters,
 )
 import config
-from services import upload_photo_to_cloudinary, create_os_via_api
+from services import upload_photo_to_cloudinary, create_os_via_api, check_api_health
+import time
 
 # Enable logging
 logging.basicConfig(
@@ -84,6 +85,25 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown",
         reply_markup=get_main_menu_keyboard()
     )
+
+async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Diagnostic command to check bot and API status"""
+    logger.info(f"🔍 Status solicitado por: {update.effective_user.username}")
+    
+    start_time = time.time()
+    api_status = check_api_health()
+    latency = round((time.time() - start_time) * 1000, 2)
+    
+    status_msg = (
+        "🤖 *Status do Sistema*\n\n"
+        f"✅ *Bot:* Ativo e Online\n"
+        f"📡 *API:* {'✅ Online' if api_status else '❌ Offline'}\n"
+        f"⏱️ *Latência:* {latency}ms\n\n"
+        f"🏠 *Ambiente:* Render (Free Tier)\n"
+        "> Nota: Se a API estiver offline, ela pode estar acordando (hibernação)."
+    )
+    
+    await update.message.reply_text(status_msg, parse_mode="Markdown")
 
 async def abrir_os(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Start the OS opening process by requesting location"""
@@ -362,6 +382,7 @@ def main():
     
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CommandHandler("status", status_command))
     application.add_handler(MessageHandler(filters.Regex("^❓ Ajuda$"), help_command))
     application.add_handler(conv_handler)
     
@@ -395,10 +416,21 @@ if __name__ == "__main__":
     # Health check em thread separada
     threading.Thread(target=run_health_check_server, daemon=True).start()
     
-    try:
-        main()
-    except KeyboardInterrupt:
-        logger.info("🛑 Parado pelo usuário.")
-    except Exception as e:
-        logger.critical(f"💥 ERRO FATAL NO STARTUP: {e}")
-        os._exit(1)
+    max_retries = 5
+    retry_delay = 10  # seconds
+    
+    for attempt in range(max_retries):
+        try:
+            main()
+            break # Exit loop if main returns normally
+        except KeyboardInterrupt:
+            logger.info("🛑 Parado pelo usuário.")
+            break
+        except Exception as e:
+            logger.error(f"💥 Falha no Bot (Tentativa {attempt + 1}/{max_retries}): {e}")
+            if attempt < max_retries - 1:
+                logger.info(f"⏳ Reiniciando em {retry_delay}s...")
+                time.sleep(retry_delay)
+            else:
+                logger.critical("❌ Limite de tentativas atingido. O bot parou.")
+                os._exit(1)

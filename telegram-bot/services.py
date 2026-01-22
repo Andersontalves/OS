@@ -13,6 +13,17 @@ if config.CLOUDINARY_URL:
     cloudinary.config(cloudinary_url=config.CLOUDINARY_URL)
 
 
+def check_api_health() -> bool:
+    """Check if the backend API is reachable"""
+    try:
+        # Check base URL or documentation endpoint for health
+        base_url = config.API_BASE_URL.rstrip("/")
+        response = requests.get(f"{base_url}/", timeout=5)
+        return response.status_code == 200
+    except:
+        return False
+
+
 def upload_photo_to_cloudinary(photo_bytes: bytes, filename: str = "photo") -> str:
     """
     Upload a photo to Cloudinary
