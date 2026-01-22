@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste - Sistema O.S</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .test-box {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+        .success { color: #4caf50; }
+        .error { color: #f44336; }
+        .info { color: #2196f3; }
+        button {
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #1976d2; }
+        pre {
+            background: #1a1a1a;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Teste de Diagnóstico - Sistema O.S</h1>
+    
+    <div class="test-box">
+        <h2>1. Teste de JavaScript</h2>
+        <button onclick="testJS()">Testar JavaScript</button>
+        <div id="js-result"></div>
+    </div>
+    
+    <div class="test-box">
+        <h2>2. Teste de API - Health Check</h2>
+        <button onclick="testHealth()">Testar /health</button>
+        <div id="health-result"></div>
+    </div>
+    
+    <div class="test-box">
+        <h2>3. Teste de API - Check Admin</h2>
+        <button onclick="testCheckAdmin()">Verificar Admin</button>
+        <div id="admin-result"></div>
+    </div>
+    
+    <div class="test-box">
+        <h2>4. Criar Admin</h2>
+        <button onclick="createAdmin()">Criar Admin</button>
+        <div id="create-result"></div>
+    </div>
+    
+    <div class="test-box">
+        <h2>5. Teste de Login</h2>
+        <input type="text" id="test-username" placeholder="Username" value="admin" style="padding: 8px; margin: 5px; width: 200px;">
+        <input type="password" id="test-password" placeholder="Password" value="admin123" style="padding: 8px; margin: 5px; width: 200px;">
+        <button onclick="testLogin()">Testar Login</button>
+        <div id="login-result"></div>
+    </div>
+    
+    <div class="test-box">
+        <h2>6. Logs do Console</h2>
+        <div id="console-logs" style="max-height: 300px; overflow-y: auto;"></div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        const logs = [];
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}`;
+            logs.push({message: logEntry, type});
+            console.log(logEntry);
+            
+            const logsDiv = document.getElementById('console-logs');
+            if (logsDiv) {
+                const p = document.createElement('p');
+                p.className = type;
+                p.textContent = logEntry;
+                logsDiv.appendChild(p);
+                logsDiv.scrollTop = logsDiv.scrollHeight;
+            }
+        }
+        
+        function testJS() {
+            log('Testando JavaScript...', 'info');
+            const result = document.getElementById('js-result');
+            result.innerHTML = '<p class="success">✅ JavaScript está funcionando!</p>';
+            log('JavaScript OK', 'success');
+        }
+        
+        async function testHealth() {
+            log('Testando /health...', 'info');
+            const result = document.getElementById('health-result');
+            result.innerHTML = '<p>Testando...</p>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                result.innerHTML = `<pre class="success">✅ ${JSON.stringify(data, null, 2)}</pre>`;
+                log('Health check OK', 'success');
+            } catch (error) {
+                result.innerHTML = `<pre class="error">❌ Erro: ${error.message}</pre>`;
+                log(`Health check ERRO: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testCheckAdmin() {
+            log('Verificando admin...', 'info');
+            const result = document.getElementById('admin-result');
+            result.innerHTML = '<p>Verificando...</p>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/check-admin`);
+                const data = await response.json();
+                result.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                if (data.admin_exists && data.can_login) {
+                    log('Admin existe e pode fazer login', 'success');
+                } else {
+                    log('Admin não existe ou não pode fazer login', 'error');
+                }
+            } catch (error) {
+                result.innerHTML = `<pre class="error">❌ Erro: ${error.message}</pre>`;
+                log(`Check admin ERRO: ${error.message}`, 'error');
+            }
+        }
+        
+        async function createAdmin() {
+            log('Criando admin...', 'info');
+            const result = document.getElementById('create-result');
+            result.innerHTML = '<p>Criando...</p>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/init-admin`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+                result.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                if (data.status === 'created' || data.status === 'exists') {
+                    log('Admin OK', 'success');
+                } else {
+                    log(`Admin ERRO: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                result.innerHTML = `<pre class="error">❌ Erro: ${error.message}</pre>`;
+                log(`Create admin ERRO: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testLogin() {
+            const username = document.getElementById('test-username').value;
+            const password = document.getElementById('test-password').value;
+            
+            log(`Testando login: ${username}...`, 'info');
+            const result = document.getElementById('login-result');
+            result.innerHTML = '<p>Testando login...</p>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    result.innerHTML = `<pre class="success">✅ Login OK!<br>Token: ${data.access_token.substring(0, 20)}...</pre>`;
+                    log('Login OK', 'success');
+                } else {
+                    const error = await response.json();
+                    result.innerHTML = `<pre class="error">❌ Login falhou: ${error.detail || response.statusText}</pre>`;
+                    log(`Login ERRO: ${error.detail || response.statusText}`, 'error');
+                }
+            } catch (error) {
+                result.innerHTML = `<pre class="error">❌ Erro: ${error.message}</pre>`;
+                log(`Login ERRO: ${error.message}`, 'error');
+            }
+        }
+        
+        // Inicialização
+        log('Página de teste carregada', 'info');
+        log(`API Base: ${API_BASE}`, 'info');
+    </script>
+</body>
+</html>
