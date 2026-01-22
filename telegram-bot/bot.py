@@ -419,22 +419,6 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         return
 
-async def api_heartbeat():
-    """Background task to keep API awake by pinging it every 10 minutes"""
-    logger.info("💓 Heartbeat da API iniciado.")
-    while True:
-        try:
-            is_alive = await check_api_health()
-            if is_alive:
-                logger.debug("💓 API está acordada.")
-            else:
-                logger.warning("💓 API não respondeu ao heartbeat.")
-        except Exception as e:
-            logger.error(f"💓 Falha no heartbeat: {e}")
-        
-        # Ping every 10 minutes (Render free tier sleeps after 15)
-        await asyncio.sleep(600)
-
 def run_health_check_server():
     try:
         port = int(os.environ.get("PORT", "10000"))
