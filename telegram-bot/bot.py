@@ -87,7 +87,8 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def abrir_os(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Start the OS opening conversation"""
+    """Start the OS opening process by requesting location"""
+    logger.info(f"Bot: Comando 'abrir_os' recebido de {update.effective_user.username}")
     context.user_data.clear()  # Reset user data
     
     # Create keyboard with location button

@@ -41,13 +41,15 @@ def create_os_via_api(os_data: dict) -> dict:
     """
     try:
         # 1. Login to get token
-        # Safe way to get base API URL from the endpoint
-        if config.API_ENDPOINT_CREATE_OS.endswith("/os"):
-            base_url = config.API_ENDPOINT_CREATE_OS[:-3]
+        # Get base API URL by stripping /os and any trailing slashes
+        clean_endpoint = config.API_ENDPOINT_CREATE_OS.rstrip("/")
+        if clean_endpoint.endswith("/os"):
+            base_url = clean_endpoint[:-3]
         else:
-            base_url = config.API_ENDPOINT_CREATE_OS
+            base_url = clean_endpoint
             
         auth_url = f"{base_url}/auth/login"
+        print(f"DEBUG: Bot tentando login em: {auth_url}") # Will show in Render logs
         
         login_response = requests.post(
             auth_url,
