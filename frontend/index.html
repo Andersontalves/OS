@@ -44,7 +44,10 @@
         </div>
 
         <div class="text-center mt-3">
-            <p class="text-muted" style="font-size: 0.85rem;">
+            <button type="button" id="fix-bot-btn" class="btn btn-secondary" style="font-size: 0.85rem; padding: 0.4rem 1rem;">
+                🔧 Destravar Bot
+            </button>
+            <p class="text-muted" style="font-size: 0.85rem; margin-top: 0.5rem;">
                 Criado e desenvolvido por Anderson Tadeu Alves
             </p>
         </div>
@@ -52,6 +55,11 @@
 
     <script src="js/api.js"></script>
     <script>
+        // Get API base URL for fix bot button
+        const API_BASE_URL = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
+            ? 'http://localhost:8000/api/v1'
+            : window.location.origin + '/api/v1';
+        
         // Redirect if already logged in
         if (api.isAuthenticated()) {
             window.location.href = 'dashboard.html';
@@ -108,6 +116,37 @@
             const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
             passwordInput.setAttribute('type', type);
             this.textContent = type === 'password' ? '👁️' : '🙈';
+        });
+
+        // Fix Bot Button
+        const fixBotBtn = document.getElementById('fix-bot-btn');
+        fixBotBtn.addEventListener('click', async function() {
+            const originalText = this.textContent;
+            this.disabled = true;
+            this.textContent = '⏳ Processando...';
+            
+            try {
+                const apiBase = API_BASE_URL.replace('/api/v1', '');
+                const response = await fetch(`${apiBase}/init-admin`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'created') {
+                    showAlert('✅ Bot destravado! Usuário admin criado com sucesso. O bot deve funcionar agora.', 'success');
+                } else if (data.status === 'exists') {
+                    showAlert('ℹ️ Usuário admin já existe. O bot deve estar funcionando normalmente.', 'success');
+                } else {
+                    showAlert(`⚠️ ${data.message || 'Erro ao destravar bot'}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`❌ Erro ao conectar com a API: ${error.message}`, 'error');
+            } finally {
+                this.disabled = false;
+                this.textContent = originalText;
+            }
         });
     </script>
 </body>
