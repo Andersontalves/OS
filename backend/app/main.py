@@ -1,4 +1,5 @@
-from fastapi import FastAPI, status, text
+from fastapi import FastAPI, status
+from sqlalchemy import text
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
