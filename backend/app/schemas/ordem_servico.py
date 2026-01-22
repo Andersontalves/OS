@@ -33,8 +33,19 @@ class OrdemServicoUpdate(BaseModel):
     tecnico_executor_id: Optional[int] = None
 
 
-class UserSimple(BaseModel):
-    """Simplified technician schema"""
+class OrdemServicoAssumirRequest(BaseModel):
+    """Schema for assuming an OS"""
+    tecnico_executor_id: int
+
+
+class OrdemServicoFinalizarRequest(BaseModel):
+    """Schema for finalizing an OS"""
+    foto_comprovacao: str
+    observacoes: Optional[str] = None
+
+
+class TecnicoInfo(BaseModel):
+    """Simplified technician schema for responses"""
     id: int
     nome: Optional[str] = None
     username: str
@@ -64,15 +75,23 @@ class OrdemServicoResponse(BaseModel):
     telegram_phone: Optional[str] = None
     cidade: Optional[str] = None
     
+    # Execution data
+    foto_comprovacao: Optional[str] = None
+    observacoes: Optional[str] = None
+    
     # Timestamps
     criado_em: datetime
     iniciado_em: Optional[datetime] = None
     concluido_em: Optional[datetime] = None
-    observacoes: Optional[str] = None
+    
+    # Computed metrics
+    tempo_espera_min: Optional[int] = None
+    tempo_execucao_min: Optional[int] = None
+    tempo_total_min: Optional[int] = None
     
     # Nested info
-    tecnico_campo: Optional[UserSimple] = None
-    tecnico_executor: Optional[UserSimple] = None
+    tecnico_campo: Optional[TecnicoInfo] = None
+    tecnico_executor: Optional[TecnicoInfo] = None
 
     class Config:
         from_attributes = True
