@@ -3,6 +3,9 @@ import cloudinary
 import cloudinary.uploader
 from io import BytesIO
 import config
+import logging
+
+logger_bot = logging.getLogger(__name__)
 
 
 # Configure Cloudinary
@@ -74,13 +77,16 @@ def create_os_via_api(os_data: dict) -> dict:
         )
         
         if response.status_code == 201:
+            logger_bot.info(f"✅ O.S criada com sucesso: {response.json().get('numero_os')}")
             return response.json()
         else:
             try:
                 error_detail = response.json().get("detail", "Erro desconhecido")
             except:
                 error_detail = response.text
+            logger_bot.error(f"❌ API retornou erro {response.status_code}: {error_detail}")
             raise Exception(f"API retornou erro: {error_detail}")
     
     except requests.exceptions.RequestException as e:
+        logger_bot.error(f"❌ Erro de conexão com a API: {str(e)}")
         raise Exception(f"Erro de conexão com a API: {str(e)}")
