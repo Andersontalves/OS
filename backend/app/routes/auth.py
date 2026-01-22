@@ -30,7 +30,7 @@ def login(login_data: LoginRequest, db: Session = Depends(get_db)):
     
     return Token(
         access_token=access_token,
-        user=UserResponse.from_orm(user)
+        user=UserResponse.model_validate(user)
     )
 
 
@@ -39,4 +39,4 @@ def get_current_user_info(user: User = Depends(get_current_user)):
     """
     Get current authenticated user information
     """
-    return UserResponse.from_orm(user)
+    return UserResponse.model_validate(user)

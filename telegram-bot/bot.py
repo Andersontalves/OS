@@ -91,7 +91,7 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"🔍 Status solicitado por: {update.effective_user.username}")
     
     start_time = time.time()
-    api_status = check_api_health()
+    api_status = await check_api_health()
     latency = round((time.time() - start_time) * 1000, 2)
     
     status_msg = (
@@ -328,7 +328,7 @@ async def confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "telegram_nick": context.user_data.get("telegram_nick"),
                 "cidade": context.user_data.get("cidade")
             }
-            result = create_os_via_api(os_data)
+            result = await create_os_via_api(os_data)
             await update.message.reply_text(
                 f"✅ *O.S criada!* Nº: *{result['numero_os']}*\n"
                 "Em breve um técnico assumirá a execução.",
