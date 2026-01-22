@@ -143,6 +143,7 @@ def list_os(
             tecnico_executor_nome=(os.tecnico_executor.nome or os.tecnico_executor.username) if os.tecnico_executor else None,
             criado_em=os.criado_em,
             pppoe_cliente=os.pppoe_cliente,
+            motivo_abertura=os.motivo_abertura,
             cidade=os.cidade
         )
         for os in results
@@ -391,8 +392,10 @@ def _format_os_response(os: OrdemServico) -> OrdemServicoResponse:
         id=os.id,
         numero_os=os.numero_os,
         status=os.status,
-        tecnico_campo=TecnicoInfo.from_orm(os.tecnico_campo),
-        tecnico_executor=TecnicoInfo.from_orm(os.tecnico_executor) if os.tecnico_executor else None,
+        tecnico_campo_id=os.tecnico_campo_id,
+        tecnico_executor_id=os.tecnico_executor_id,
+        tecnico_campo=os.tecnico_campo,
+        tecnico_executor=os.tecnico_executor,
         foto_power_meter=os.foto_power_meter,
         foto_caixa=os.foto_caixa,
         localizacao_lat=os.localizacao_lat,
@@ -408,7 +411,8 @@ def _format_os_response(os: OrdemServico) -> OrdemServicoResponse:
         criado_em=os.criado_em,
         iniciado_em=os.iniciado_em,
         concluido_em=os.concluido_em,
-        tempo_espera_min=os.tempo_espera_minutos,
-        tempo_execucao_min=os.tempo_execucao_minutos,
-        tempo_total_min=os.tempo_total_minutos
+        tempo_espera_min=int(os.tempo_espera_minutos) if os.tempo_espera_minutos is not None else None,
+        tempo_execucao_min=int(os.tempo_execucao_minutos) if os.tempo_execucao_minutos is not None else None,
+        tempo_total_min=int(os.tempo_total_minutos) if os.tempo_total_minutos is not None else None,
+        cidade=os.cidade
     )
