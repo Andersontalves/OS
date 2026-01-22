@@ -52,20 +52,25 @@ def create_os_via_api(os_data: dict) -> dict:
             base_url = clean_endpoint
             
         auth_url = f"{base_url}/auth/login"
-        print(f"DEBUG: Bot tentando login em: {auth_url}") # Will show in Render logs
+        logger_bot.info(f"🔑 Bot iniciando login em: {auth_url}")
         
         login_response = requests.post(
             auth_url,
             json={"username": "admin", "password": "admin123"},
-            timeout=10
+            timeout=15  # Slightly longer for cold starts
         )
         
+        logger_bot.info(f"📡 Resposta Login: {login_response.status_code}")
+        
         if login_response.status_code != 200:
-            raise Exception(f"Falha no login do Bot: {login_response.text}")
+            logger_bot.error(f"❌ Falha no login do Bot: {login_response.text}")
+            raise Exception(f"Falha na autenticação com o servidor.")
             
         token = login_response.json()["access_token"]
+        logger_bot.info("✅ Token obtido com sucesso.")
         
         # 2. Create OS with Token
+        logger_bot.info(f"📤 Enviando O.S para: {config.API_ENDPOINT_CREATE_OS}")
         response = requests.post(
             config.API_ENDPOINT_CREATE_OS,
             json=os_data,
@@ -76,17 +81,26 @@ def create_os_via_api(os_data: dict) -> dict:
             timeout=30
         )
         
+        logger_bot.info(f"📡 Resposta Criação O.S: {response.status_code}")
+        
         if response.status_code == 201:
-            logger_bot.info(f"✅ O.S criada com sucesso: {response.json().get('numero_os')}")
-            return response.json()
+            res_json = response.json()
+            logger_bot.info(f"✅ O.S criada com sucesso: {res_json.get('numero_os')}")
+            return res_json
         else:
             try:
                 error_detail = response.json().get("detail", "Erro desconhecido")
             except:
                 error_detail = response.text
             logger_bot.error(f"❌ API retornou erro {response.status_code}: {error_detail}")
-            raise Exception(f"API retornou erro: {error_detail}")
+            raise Exception(f"Servidor retornou erro: {error_detail}")
     
+    except requests.exceptions.Timeout:
+        logger_bot.error("❌ Timeout ao conectar com a API")
+        raise Exception("O servidor demorou muito para responder. Tente novamente em instantes.")
     except requests.exceptions.RequestException as e:
         logger_bot.error(f"❌ Erro de conexão com a API: {str(e)}")
-        raise Exception(f"Erro de conexão com a API: {str(e)}")
+        raise Exception(f"Não foi possível conectar ao servidor. Verifique a internet ou tente novamente.")
+    except Exception as e:
+        logger_bot.error(f"❌ Erro inesperado: {str(e)}")
+        raise e

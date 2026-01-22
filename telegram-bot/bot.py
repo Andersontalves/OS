@@ -365,8 +365,12 @@ def main():
     application.add_handler(MessageHandler(filters.Regex("^❓ Ajuda$"), help_command))
     application.add_handler(conv_handler)
     
-    logger.info("🤖 Bot iniciando...")
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+    logger.info("🤖 Bot configurado. Iniciando polling...")
+    try:
+        application.run_polling(allowed_updates=Update.ALL_TYPES, close_loop=False)
+    except Exception as e:
+        logger.error(f"❌ Erro no polling: {e}")
+        raise e
 
 class HealthCheckHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -374,19 +378,27 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
         self.send_header('Content-type', 'text/plain')
         self.end_headers()
         self.wfile.write(b"Bot is alive!")
-
     def log_message(self, format, *args):
         return
 
 def run_health_check_server():
-    port = int(os.environ.get("PORT", "10000"))
-    server = HTTPServer(('0.0.0.0', port), HealthCheckHandler)
-    logger.info(f"📡 Health check na porta {port}")
-    server.serve_forever()
+    try:
+        port = int(os.environ.get("PORT", "10000"))
+        server = HTTPServer(('0.0.0.0', port), HealthCheckHandler)
+        logger.info(f"📡 Servidor Health Check rodando na porta {port}")
+        server.serve_forever()
+    except Exception as e:
+        logger.error(f"⚠️ Erro no servidor de saúde: {e}")
 
 if __name__ == "__main__":
+    logger.info("🎬 Iniciando processo principal do Bot...")
+    # Health check em thread separada
+    threading.Thread(target=run_health_check_server, daemon=True).start()
+    
     try:
-        threading.Thread(target=run_health_check_server, daemon=True).start()
         main()
+    except KeyboardInterrupt:
+        logger.info("🛑 Parado pelo usuário.")
     except Exception as e:
-        logger.critical(f"💥 Fatal error: {e}")
+        logger.critical(f"💥 ERRO FATAL NO STARTUP: {e}")
+        os._exit(1)
