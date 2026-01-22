@@ -1,3 +1,4 @@
+# Fixed imports for SQLAlchemy text
 from fastapi import FastAPI, status
 from sqlalchemy import text
 from fastapi.middleware.cors import CORSMiddleware
