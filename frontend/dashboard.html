@@ -57,10 +57,14 @@
             </div>
 
             <!-- Motivo Stats -->
-            <div class="grid grid-2 mb-4">
+            <div class="grid grid-3 mb-4">
                 <div class="card" style="border-left: 4px solid var(--danger);">
                     <div class="text-muted" style="font-size: 0.85rem; margin-bottom: 0.5rem;">📡 Caixa sem sinal</div>
                     <h2 style="margin-bottom: 0;" id="stat-sem-sinal">0</h2>
+                </div>
+                <div class="card" style="border-left: 4px solid var(--warning);">
+                    <div class="text-muted" style="font-size: 0.85rem; margin-bottom: 0.5rem;">📈 Sinal Alto</div>
+                    <h2 style="margin-bottom: 0;" id="stat-sinal-alto">0</h2>
                 </div>
                 <div class="card" style="border-left: 4px solid var(--primary);">
                     <div class="text-muted" style="font-size: 0.85rem; margin-bottom: 0.5rem;">🚀 Ampliação de
@@ -151,6 +155,7 @@
                 document.getElementById('stat-total').textContent = data.totais.total;
                 document.getElementById('stat-sem-sinal').textContent = data.totais.motivo_sem_sinal || 0;
                 document.getElementById('stat-ampliacao').textContent = data.totais.motivo_ampliacao || 0;
+                document.getElementById('stat-sinal-alto').textContent = data.totais.motivo_sinal_alto || 0;
 
                 // Update metrics
                 document.getElementById('metric-espera').textContent = formatDuration(data.metricas.tempo_medio_espera_min);

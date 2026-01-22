@@ -284,7 +284,7 @@ async def receive_cidade(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Question about Reason
     motivo_keyboard = ReplyKeyboardMarkup(
         [["Caixa sem sinal", "Ampliação de atendimento"],
-         ["❌ Cancelar Operação"]],
+         ["Sinal Alto", "❌ Cancelar Operação"]],
         one_time_keyboard=True,
         resize_keyboard=True
     )
@@ -301,7 +301,7 @@ async def receive_cidade(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def receive_motivo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Receive and process the reason for OS opening"""
     motivo = update.message.text
-    if motivo not in ["Caixa sem sinal", "Ampliação de atendimento"]:
+    if motivo not in ["Caixa sem sinal", "Ampliação de atendimento", "Sinal Alto"]:
         await update.message.reply_text("Por favor, escolha uma das opções abaixo.")
         return MOTIVO
         

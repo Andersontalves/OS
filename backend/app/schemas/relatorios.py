@@ -12,6 +12,7 @@ class DashboardTotais(BaseModel):
     # Motivo stats
     motivo_sem_sinal: int = 0
     motivo_ampliacao: int = 0
+    motivo_sinal_alto: int = 0
 
 
 class DashboardMetricas(BaseModel):

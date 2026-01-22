@@ -46,6 +46,7 @@ def get_dashboard(
     # Counts by motive
     motivo_sem_sinal = db.query(OrdemServico).filter(OrdemServico.motivo_abertura == "Caixa sem sinal").count()
     motivo_ampliacao = db.query(OrdemServico).filter(OrdemServico.motivo_abertura == "Ampliação de atendimento").count()
+    motivo_sinal_alto = db.query(OrdemServico).filter(OrdemServico.motivo_abertura == "Sinal Alto").count()
 
     totais = DashboardTotais(
         aguardando=totais_dict.get("aguardando", 0),
@@ -53,7 +54,8 @@ def get_dashboard(
         concluido=totais_dict.get("concluido", 0),
         total=total_geral,
         motivo_sem_sinal=motivo_sem_sinal,
-        motivo_ampliacao=motivo_ampliacao
+        motivo_ampliacao=motivo_ampliacao,
+        motivo_sinal_alto=motivo_sinal_alto
     )
     
     # Average times (only for completed OS)
