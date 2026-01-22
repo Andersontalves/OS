@@ -80,6 +80,7 @@ def create_os(
         motivo_abertura=os_data.motivo_abertura,
         telegram_nick=os_data.telegram_nick,
         telegram_phone=os_data.telegram_phone,
+        cidade=os_data.cidade,
         status="aguardando"
     )
     
@@ -141,7 +142,8 @@ def list_os(
             tecnico_campo_nome=(os.tecnico_campo.nome or os.tecnico_campo.username) if os.tecnico_campo else None,
             tecnico_executor_nome=(os.tecnico_executor.nome or os.tecnico_executor.username) if os.tecnico_executor else None,
             criado_em=os.criado_em,
-            pppoe_cliente=os.pppoe_cliente
+            pppoe_cliente=os.pppoe_cliente,
+            cidade=os.cidade
         )
         for os in results
     ]

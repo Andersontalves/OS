@@ -31,6 +31,7 @@ class OrdemServico(Base):
     motivo_abertura = Column(String(50), nullable=True) # Caixa sem sinal, Ampliação, etc
     telegram_nick = Column(String(100), nullable=True)
     telegram_phone = Column(String(20), nullable=True)
+    cidade = Column(String(100), nullable=True)
     
     # Status e controle
     status = Column(

@@ -32,8 +32,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Conversation states
 (
+    CIDADE,
     MOTIVO,
     POWER_METER,
     CAIXA,
@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
     PRINT_OS,
     PPPOE,
     CONFIRMACAO
-) = range(7)
+) = range(8)
 
 # User data for each technician (temporary storage)
 TECNICO_ID_DEFAULT = 1  # Usar admin (ID 1) para testes se campo1 não existir
@@ -248,6 +248,39 @@ async def receive_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # For now we'll save simple nick and allow phone if provided in future.
     # user.contact is only for reply with contact button.
     
+    # Question about City
+    cidade_keyboard = ReplyKeyboardMarkup(
+        [["Salto de Pirapora", "Votorantim"],
+         ["Araçoiaba da Serra", "Sarapuí"],
+         ["Sorocaba", "Alambari"],
+         ["❌ Cancelar Operação"]],
+        one_time_keyboard=True,
+        resize_keyboard=True
+    )
+
+    await update.message.reply_text(
+        f"✅ Localização confirmada! Precisão: *{precision_text}*\n\n"
+        "2️⃣ Qual a *CIDADE* do atendimento?",
+        parse_mode="Markdown",
+        reply_markup=cidade_keyboard
+    )
+    return CIDADE
+
+
+async def receive_cidade(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Receive and process the city"""
+    cidade = update.message.text
+    cidades_validas = [
+        "Salto de Pirapora", "Votorantim", "Araçoiaba da Serra", 
+        "Sarapuí", "Sorocaba", "Alambari"
+    ]
+    
+    if cidade not in cidades_validas:
+        await update.message.reply_text("Por favor, escolha uma das cidades no teclado.")
+        return CIDADE
+        
+    context.user_data["cidade"] = cidade
+    
     # Question about Reason
     motivo_keyboard = ReplyKeyboardMarkup(
         [["Caixa sem sinal", "Ampliação de atendimento"],
@@ -257,8 +290,8 @@ async def receive_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     await update.message.reply_text(
-        f"✅ Localização confirmada! Precisão: *{precision_text}*\n\n"
-        "2️⃣ Qual o *MOTIVO* da abertura desta O.S?",
+        f"✅ Cidade registrada: *{cidade}*\n\n"
+        "3️⃣ Qual o *MOTIVO* da abertura desta O.S?",
         parse_mode="Markdown",
         reply_markup=motivo_keyboard
     )
@@ -378,7 +411,6 @@ async def confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         try:
             # Prepare data for API
-            # Prepare data for API
             os_data = {
                 "tecnico_campo_id": TECNICO_ID_DEFAULT,
                 "foto_power_meter": context.user_data["foto_power_meter"],
@@ -390,7 +422,8 @@ async def confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "pppoe_cliente": context.user_data["pppoe_cliente"],
                 "motivo_abertura": context.user_data.get("motivo_abertura"),
                 "telegram_nick": context.user_data.get("telegram_nick"),
-                "telegram_phone": context.user_data.get("telegram_phone")
+                "telegram_phone": context.user_data.get("telegram_phone"),
+                "cidade": context.user_data.get("cidade")
             }
             
             # Create OS via API
@@ -401,7 +434,6 @@ async def confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"📋 Número: *{result['numero_os']}*\n"
                 f"⏰ Criada em: {result['criado_em'][:16]}\n"
                 f"📊 Status: *{result['status']}*\n\n"
-                "Aguardando atribuição pela equipe de execução.\n\n"
                 "Aguardando atribuição pela equipe de execução.\n\n"
                 "Selecione uma opção:",
                 parse_mode="Markdown",
@@ -459,6 +491,7 @@ def main():
         ],
         states={
             LOCALIZACAO: [MessageHandler(filters.LOCATION, receive_location)],
+            CIDADE: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.Regex("^❌"), receive_cidade)],
             MOTIVO: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.Regex("^❌"), receive_motivo)],
             POWER_METER: [MessageHandler(filters.PHOTO, receive_power_meter)],
             CAIXA: [MessageHandler(filters.PHOTO, receive_caixa)],

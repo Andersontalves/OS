@@ -6,6 +6,13 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import os
+import time
+
+# Set Timezone to Brazil/Brasilia
+os.environ['TZ'] = 'America/Sao_Paulo'
+if hasattr(time, 'tzset'):
+    time.tzset()
+
 from contextlib import asynccontextmanager
 from sqlalchemy.orm import Session
 from .config import get_settings
@@ -25,6 +32,7 @@ async def lifespan(app: FastAPI):
             conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN IF NOT EXISTS motivo_abertura VARCHAR;"))
             conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN IF NOT EXISTS telegram_nick VARCHAR;"))
             conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN IF NOT EXISTS telegram_phone VARCHAR;"))
+            conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN IF NOT EXISTS cidade VARCHAR;"))
             print("✅ Schema atualizado com sucesso!")
         except Exception as e:
             print(f"⚠️ Aviso ao atualizar schema: {e}")
@@ -33,6 +41,7 @@ async def lifespan(app: FastAPI):
                 conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN motivo_abertura VARCHAR;"))
                 conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN telegram_nick VARCHAR;"))
                 conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN telegram_phone VARCHAR;"))
+                conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN cidade VARCHAR;"))
             except:
                 pass
     

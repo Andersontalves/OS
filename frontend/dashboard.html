@@ -89,17 +89,22 @@
             </div>
 
             <!-- Technicians Stats -->
-            <div class="card">
-                <h3 class="mb-3">📈 Estatísticas por Técnico</h3>
-                <div id="tecnico-stats-container"></div>
-            </div>
+            <h3 class="mb-3">📈 Estatísticas por Técnico</h3>
+            <div id="tecnico-stats-container"></div>
         </div>
 
-        <div class="text-center mt-5 mb-4">
-            <p class="text-muted" style="font-size: 0.85rem;">
-                Criado e desenvolvido por Anderson Tadeu Alves
-            </p>
+        <!-- Cities Stats -->
+        <div class="card mt-4">
+            <h3 class="mb-3">🏘️ Ordens por Cidade</h3>
+            <div id="cidade-stats-container"></div>
         </div>
+    </div>
+
+    <div class="text-center mt-5 mb-4">
+        <p class="text-muted" style="font-size: 0.85rem;">
+            Criado e desenvolvido por Anderson Tadeu Alves
+        </p>
+    </div>
     </div>
 
     <script src="js/api.js"></script>
@@ -123,6 +128,16 @@
             api.logout();
         });
 
+        // Helper to format minutes to HH:MM:SS
+        function formatDuration(minutes) {
+            if (!minutes && minutes !== 0) return 'N/A';
+            const totalSeconds = Math.round(minutes * 60);
+            const h = Math.floor(totalSeconds / 3600);
+            const m = Math.floor((totalSeconds % 3600) / 60);
+            const s = totalSeconds % 60;
+            return `${h.toString().padStart(2, '0')}h ${m.toString().padStart(2, '0')}m ${s.toString().padStart(2, '0')}s`;
+        }
+
         // Load dashboard data
         async function loadDashboard() {
             try {
@@ -137,20 +152,9 @@
                 document.getElementById('stat-ampliacao').textContent = data.totais.motivo_ampliacao || 0;
 
                 // Update metrics
-                document.getElementById('metric-espera').textContent =
-                    data.metricas.tempo_medio_espera_min
-                        ? `${Math.round(data.metricas.tempo_medio_espera_min)} min`
-                        : 'N/A';
-
-                document.getElementById('metric-execucao').textContent =
-                    data.metricas.tempo_medio_execucao_min
-                        ? `${Math.round(data.metricas.tempo_medio_execucao_min)} min`
-                        : 'N/A';
-
-                document.getElementById('metric-total').textContent =
-                    data.metricas.tempo_medio_total_min
-                        ? `${Math.round(data.metricas.tempo_medio_total_min)} min`
-                        : 'N/A';
+                document.getElementById('metric-espera').textContent = formatDuration(data.metricas.tempo_medio_espera_min);
+                document.getElementById('metric-execucao').textContent = formatDuration(data.metricas.tempo_medio_execucao_min);
+                document.getElementById('metric-total').textContent = formatDuration(data.metricas.tempo_medio_total_min);
 
                 // Update technician stats
                 const statsContainer = document.getElementById('tecnico-stats-container');
@@ -174,6 +178,33 @@
                                             <td><strong>${t.tecnico_nome}</strong></td>
                                             <td>${t.total_concluidas}</td>
                                             <td>${t.tempo_medio_execucao_min ? Math.round(t.tempo_medio_execucao_min) + ' min' : 'N/A'}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                }
+
+                // Update city stats
+                const cityContainer = document.getElementById('cidade-stats-container');
+                if (!data.por_cidade || data.por_cidade.length === 0) {
+                    cityContainer.innerHTML = '<p class="text-muted">Nenhuma ordem com cidade registrada ainda.</p>';
+                } else {
+                    cityContainer.innerHTML = `
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Cidade</th>
+                                        <th>Total de O.S</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${data.por_cidade.map(c => `
+                                        <tr>
+                                            <td><strong>${c.cidade}</strong></td>
+                                            <td>${c.total}</td>
                                         </tr>
                                     `).join('')}
                                 </tbody>

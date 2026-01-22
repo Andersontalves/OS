@@ -75,6 +75,7 @@ class OrdemServicoResponse(BaseModel):
     motivo_abertura: Optional[str] = None
     telegram_nick: Optional[str] = None
     telegram_phone: Optional[str] = None
+    cidade: Optional[str] = None
     foto_comprovacao: Optional[str] = None
     observacoes: Optional[str] = None
     
@@ -101,6 +102,7 @@ class OrdemServicoListItem(BaseModel):
     tecnico_executor_nome: Optional[str]
     criado_em: datetime
     pppoe_cliente: str
+    cidade: Optional[str] = None
     
     class Config:
         from_attributes = True

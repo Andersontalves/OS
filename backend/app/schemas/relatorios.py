@@ -28,8 +28,15 @@ class TecnicoStats(BaseModel):
     tempo_medio_execucao_min: Optional[float] = None
 
 
+class CidadeStats(BaseModel):
+    """Statistics per city"""
+    cidade: str
+    total: int
+
+
 class DashboardResponse(BaseModel):
     """Complete dashboard response"""
     totais: DashboardTotais
     metricas: DashboardMetricas
     por_tecnico: List[TecnicoStats]
+    por_cidade: List[CidadeStats] = []

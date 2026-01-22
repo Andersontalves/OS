@@ -9,7 +9,8 @@ from ..schemas.relatorios import (
     DashboardResponse,
     DashboardTotais,
     DashboardMetricas,
-    TecnicoStats
+    TecnicoStats,
+    CidadeStats
 )
 from ..services.auth_service import get_current_user
 
@@ -102,8 +103,25 @@ def get_dashboard(
         for row in tecnico_stats
     ]
     
+    # Stats per city
+    city_stats_query = (
+        db.query(
+            OrdemServico.cidade,
+            func.count(OrdemServico.id).label("total")
+        )
+        .filter(OrdemServico.cidade.is_not(None))
+        .group_by(OrdemServico.cidade)
+        .all()
+    )
+    
+    por_cidade = [
+        CidadeStats(cidade=row.cidade, total=row.total)
+        for row in city_stats_query
+    ]
+    
     return DashboardResponse(
         totais=totais,
         metricas=metricas,
-        por_tecnico=por_tecnico
+        por_tecnico=por_tecnico,
+        por_cidade=por_cidade
     )
