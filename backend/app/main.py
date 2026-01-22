@@ -21,7 +21,6 @@ from .models.user import User
 from .services.auth_service import hash_password
 from .routes import auth, os as os_routes, relatorios, usuarios
 from datetime import datetime, timedelta
-import httpx
 
 settings = get_settings()
 
