@@ -90,20 +90,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
-app.include_router(auth.router, prefix="/api/v1")
-app.include_router(os_routes.router, prefix="/api/v1")
-app.include_router(relatorios.router, prefix="/api/v1")
-app.include_router(usuarios.router, prefix="/api/v1")
-
-# Serve Static Files (Frontend)
-frontend_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "frontend")
-if os.path.exists(frontend_path):
-    app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
-else:
-    print(f"Warning: Frontend directory not found at {frontend_path}")
-
-
+# Define API endpoints BEFORE mounting frontend (order matters!)
 @app.get("/", status_code=status.HTTP_200_OK)
 def root():
     """Root endpoint - API health check"""
@@ -310,6 +297,20 @@ def fix_bot():
     results["elapsed_seconds"] = int(elapsed_total)
     
     return results
+
+
+# Include routers (after root endpoints, before frontend)
+app.include_router(auth.router, prefix="/api/v1")
+app.include_router(os_routes.router, prefix="/api/v1")
+app.include_router(relatorios.router, prefix="/api/v1")
+app.include_router(usuarios.router, prefix="/api/v1")
+
+# Serve Static Files (Frontend) - MUST be last to not catch API routes
+frontend_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "frontend")
+if os.path.exists(frontend_path):
+    app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
+else:
+    print(f"Warning: Frontend directory not found at {frontend_path}")
 
 
 # Global exception handler
