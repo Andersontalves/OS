@@ -280,6 +280,67 @@ def check_admin():
         db.close()
 
 
+@app.get("/debug", status_code=status.HTTP_200_OK)
+def debug_info():
+    """Endpoint de debug - retorna informações do sistema"""
+    db = SessionLocal()
+    debug_info = {
+        "timestamp": datetime.utcnow().isoformat(),
+        "api_status": "online",
+        "database": {},
+        "users": {},
+        "bot": {}
+    }
+    
+    try:
+        # Info do banco
+        db.execute(text("SELECT 1"))
+        debug_info["database"]["connected"] = True
+        
+        # Conta usuários
+        user_count = db.query(User).count()
+        debug_info["users"]["total"] = user_count
+        
+        # Verifica admin
+        admin = db.query(User).filter(User.username == "admin").first()
+        if admin:
+            from .services.auth_service import verify_password, authenticate_user
+            password_ok = verify_password("admin123", admin.password_hash)
+            login_ok = authenticate_user(db, "admin", "admin123") is not None
+            
+            debug_info["users"]["admin"] = {
+                "exists": True,
+                "id": admin.id,
+                "username": admin.username,
+                "role": admin.role,
+                "password_valid": password_ok,
+                "can_login": login_ok
+            }
+        else:
+            debug_info["users"]["admin"] = {"exists": False}
+        
+        # Info do bot
+        global bot_last_heartbeat
+        if bot_last_heartbeat:
+            time_since = (datetime.utcnow() - bot_last_heartbeat).total_seconds()
+            debug_info["bot"]["last_heartbeat"] = bot_last_heartbeat.isoformat()
+            debug_info["bot"]["seconds_since"] = int(time_since)
+            debug_info["bot"]["online"] = time_since < 600
+        else:
+            debug_info["bot"]["last_heartbeat"] = None
+            debug_info["bot"]["online"] = False
+        
+    except Exception as e:
+        debug_info["database"]["connected"] = False
+        debug_info["database"]["error"] = str(e)
+        import traceback
+        debug_info["error"] = traceback.format_exc()
+    finally:
+        db.close()
+    
+    return debug_info
+
+
 @app.post("/fix-bot", status_code=status.HTTP_200_OK)
 def fix_bot():
     """Endpoint para destravar o bot - verifica tudo e tenta acordar o bot se necessário"""
