@@ -9,6 +9,9 @@ class DashboardTotais(BaseModel):
     em_andamento: int = 0
     concluido: int = 0
     total: int = 0
+    # Motivo stats
+    motivo_sem_sinal: int = 0
+    motivo_ampliacao: int = 0
 
 
 class DashboardMetricas(BaseModel):

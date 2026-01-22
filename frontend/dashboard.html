@@ -56,6 +56,19 @@
                 </div>
             </div>
 
+            <!-- Motivo Stats -->
+            <div class="grid grid-2 mb-4">
+                <div class="card" style="border-left: 4px solid var(--danger);">
+                    <div class="text-muted" style="font-size: 0.85rem; margin-bottom: 0.5rem;">📡 Caixa sem sinal</div>
+                    <h2 style="margin-bottom: 0;" id="stat-sem-sinal">0</h2>
+                </div>
+                <div class="card" style="border-left: 4px solid var(--primary);">
+                    <div class="text-muted" style="font-size: 0.85rem; margin-bottom: 0.5rem;">🚀 Ampliação de
+                        atendimento</div>
+                    <h2 style="margin-bottom: 0;" id="stat-ampliacao">0</h2>
+                </div>
+            </div>
+
             <!-- Metrics Cards -->
             <div class="grid grid-3 mb-4">
                 <div class="card">
@@ -120,6 +133,8 @@
                 document.getElementById('stat-em-andamento').textContent = data.totais.em_andamento;
                 document.getElementById('stat-concluido').textContent = data.totais.concluido;
                 document.getElementById('stat-total').textContent = data.totais.total;
+                document.getElementById('stat-sem-sinal').textContent = data.totais.motivo_sem_sinal || 0;
+                document.getElementById('stat-ampliacao').textContent = data.totais.motivo_ampliacao || 0;
 
                 // Update metrics
                 document.getElementById('metric-espera').textContent =

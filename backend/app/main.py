@@ -16,26 +16,33 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Inicializa o banco de dados e cria usuários padrão
-    Base.metadata.create_all(bind=engine)
-    
     # Atualiza o schema (Migrações manuais simples)
     with engine.begin() as conn:
         try:
+            # SQL Standard compatibility
             conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN IF NOT EXISTS motivo_abertura VARCHAR;"))
             conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN IF NOT EXISTS telegram_nick VARCHAR;"))
             conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN IF NOT EXISTS telegram_phone VARCHAR;"))
             print("✅ Schema atualizado com sucesso!")
         except Exception as e:
             print(f"⚠️ Aviso ao atualizar schema: {e}")
+            # Tentativa secundária sem IF NOT EXISTS para alguns sabores de DB
+            try:
+                conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN motivo_abertura VARCHAR;"))
+                conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN telegram_nick VARCHAR;"))
+                conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN telegram_phone VARCHAR;"))
+            except:
+                pass
+    
     db = SessionLocal()
     try:
-        # Verifica se já existem usuários
+        # Garante que as colunas novas não causem erro ao retornar respostas nulas
+        # E verifica usuários padrão
         if db.query(User).count() == 0:
             print("🆕 Criando usuários padrão...")
             users = [
                 User(username="admin", password_hash=hash_password("admin123"), role="admin"),
-                User(username="monitor", password_hash=hash_password("monitor123"), role="monitor"),
+                User(username="monitor", password_hash=hash_password("monitor123"), role="monitoramento"),
                 User(username="tecnico1", password_hash=hash_password("tecnico123"), role="execucao")
             ]
             db.add_all(users)
