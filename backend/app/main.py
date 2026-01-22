@@ -1,4 +1,4 @@
-from fastapi import FastAPI, status
+from fastapi import FastAPI, status, text
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -18,6 +18,16 @@ settings = get_settings()
 async def lifespan(app: FastAPI):
     # Inicializa o banco de dados e cria usuários padrão
     Base.metadata.create_all(bind=engine)
+    
+    # Atualiza o schema (Migrações manuais simples)
+    with engine.begin() as conn:
+        try:
+            conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN IF NOT EXISTS motivo_abertura VARCHAR;"))
+            conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN IF NOT EXISTS telegram_nick VARCHAR;"))
+            conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN IF NOT EXISTS telegram_phone VARCHAR;"))
+            print("✅ Schema atualizado com sucesso!")
+        except Exception as e:
+            print(f"⚠️ Aviso ao atualizar schema: {e}")
     db = SessionLocal()
     try:
         # Verifica se já existem usuários
