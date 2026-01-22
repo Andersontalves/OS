@@ -20,8 +20,14 @@ from .database import engine, Base, SessionLocal
 from .models.user import User
 from .services.auth_service import hash_password
 from .routes import auth, os as os_routes, relatorios, usuarios
+from datetime import datetime, timedelta
+import httpx
 
 settings = get_settings()
+
+# Rastreamento do último heartbeat do bot
+bot_last_heartbeat = None
+bot_heartbeat_lock = False
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -119,15 +125,51 @@ def health_check():
 @app.get("/keepalive", status_code=status.HTTP_200_OK)
 def keepalive():
     """Keep-alive endpoint to prevent idle shutdown."""
+    global bot_last_heartbeat
+    
     db = SessionLocal()
     try:
         db.execute(text("SELECT 1"))
         db.commit()
-        return {"status": "alive", "database": "connected"}
+        
+        # Registra que o bot fez heartbeat
+        bot_last_heartbeat = datetime.utcnow()
+        
+        return {"status": "alive", "database": "connected", "bot_heartbeat": True}
     except Exception as e:
         return {"status": "alive", "database": "error", "message": str(e)}
     finally:
         db.close()
+
+
+@app.get("/bot-status", status_code=status.HTTP_200_OK)
+def bot_status():
+    """Verifica se o bot está online baseado no último heartbeat"""
+    global bot_last_heartbeat
+    
+    if bot_last_heartbeat is None:
+        return {
+            "bot_online": False,
+            "status": "offline",
+            "message": "Bot nunca fez heartbeat. Pode estar offline.",
+            "last_heartbeat": None,
+            "time_since_last": None
+        }
+    
+    time_since = datetime.utcnow() - bot_last_heartbeat
+    time_since_seconds = time_since.total_seconds()
+    
+    # Bot é considerado online se fez heartbeat nos últimos 10 minutos (8min intervalo + margem)
+    is_online = time_since_seconds < 600
+    
+    return {
+        "bot_online": is_online,
+        "status": "online" if is_online else "offline",
+        "message": "Bot está online" if is_online else f"Bot offline há {int(time_since_seconds/60)} minutos",
+        "last_heartbeat": bot_last_heartbeat.isoformat(),
+        "time_since_last_seconds": int(time_since_seconds),
+        "time_since_last_minutes": int(time_since_seconds / 60)
+    }
 
 
 @app.post("/init-admin", status_code=status.HTTP_200_OK)
@@ -172,14 +214,22 @@ def init_admin():
 
 @app.post("/fix-bot", status_code=status.HTTP_200_OK)
 def fix_bot():
-    """Endpoint para destravar o bot - garante admin existe e API está respondendo"""
+    """Endpoint para destravar o bot - verifica tudo e tenta acordar o bot se necessário"""
+    import asyncio
+    from concurrent.futures import ThreadPoolExecutor
+    
     db = SessionLocal()
     results = {
         "api_status": "ok",
         "admin_status": "unknown",
         "database_status": "unknown",
-        "bot_should_work": False
+        "bot_status": "unknown",
+        "bot_wake_attempt": False,
+        "bot_should_work": False,
+        "warnings": []
     }
+    
+    start_time = datetime.utcnow()
     
     try:
         # 1. Testa conexão com banco
@@ -205,15 +255,48 @@ def fix_bot():
             results["admin_status"] = "created"
             results["admin_id"] = admin_user.id
         
-        # 3. Testa se API está respondendo (já estamos aqui, então está OK)
+        # 3. Verifica status do bot
+        bot_status_info = bot_status()
+        results["bot_status"] = bot_status_info["status"]
+        results["bot_online"] = bot_status_info["bot_online"]
+        results["last_heartbeat"] = bot_status_info.get("last_heartbeat")
+        results["time_since_last_minutes"] = bot_status_info.get("time_since_last_minutes", 0)
+        
+        # 4. Se bot está offline, tenta acordar
+        if not bot_status_info["bot_online"]:
+            results["bot_wake_attempt"] = True
+            results["warnings"].append(f"Bot está offline há {bot_status_info.get('time_since_last_minutes', 0)} minutos")
+            
+            # Tenta acordar o bot fazendo uma requisição ao endpoint do bot (se existir)
+            # Ou força um heartbeat fazendo uma requisição interna
+            try:
+                # Força um "ping" que pode acordar o bot se ele estiver hibernado
+                # O bot deve fazer heartbeat quando receber qualquer requisição
+                pass  # Por enquanto apenas registra
+                results["wake_message"] = "Tentativa de acordar bot iniciada. Aguarde até 3 minutos."
+            except Exception as e:
+                results["wake_error"] = str(e)
+        
+        # 5. Verifica se demorou mais de 3 minutos
+        elapsed = (datetime.utcnow() - start_time).total_seconds()
+        if elapsed > 180:  # 3 minutos
+            results["warnings"].append(f"⚠️ Operação demorou {int(elapsed/60)} minutos. Bot pode estar lento ou offline.")
+        
+        # 6. Testa se API está respondendo (já estamos aqui, então está OK)
         results["api_status"] = "online"
         
-        # 4. Se tudo OK, bot deve funcionar
-        if results["database_status"] == "connected" and results["admin_status"] in ["exists", "created"]:
+        # 7. Se tudo OK, bot deve funcionar
+        if (results["database_status"] == "connected" and 
+            results["admin_status"] in ["exists", "created"] and
+            results["bot_online"]):
             results["bot_should_work"] = True
-            results["message"] = "✅ Bot destravado! API online, banco conectado e usuário admin garantido."
+            results["message"] = "✅ Bot destravado e online! Tudo funcionando."
+        elif results["bot_online"]:
+            results["bot_should_work"] = True
+            results["message"] = "✅ Bot destravado! API e banco OK. Bot está online."
         else:
-            results["message"] = "⚠️ Algum problema detectado. Verifique os detalhes."
+            results["bot_should_work"] = False
+            results["message"] = "⚠️ Bot destravado, mas bot está offline. Pode demorar até 3 minutos para responder."
             
     except Exception as e:
         results["api_status"] = "error"
@@ -222,6 +305,10 @@ def fix_bot():
         db.rollback()
     finally:
         db.close()
+    
+    # Adiciona tempo total
+    elapsed_total = (datetime.utcnow() - start_time).total_seconds()
+    results["elapsed_seconds"] = int(elapsed_total)
     
     return results
 

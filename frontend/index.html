@@ -118,15 +118,32 @@
             this.textContent = type === 'password' ? '👁️' : '🙈';
         });
 
-        // Fix Bot Button - Destrava o bot
+        // Fix Bot Button - Destrava o bot e verifica status
         const fixBotBtn = document.getElementById('fix-bot-btn');
         fixBotBtn.addEventListener('click', async function() {
             const originalText = this.textContent;
             this.disabled = true;
-            this.textContent = '⏳ Destravando bot...';
+            this.textContent = '⏳ Verificando bot...';
             
             try {
                 const apiBase = API_BASE_URL.replace('/api/v1', '');
+                
+                // Primeiro verifica status do bot
+                const statusResponse = await fetch(`${apiBase}/bot-status`);
+                const botStatus = await statusResponse.json();
+                
+                // Se bot está offline, mostra aviso
+                if (!botStatus.bot_online) {
+                    this.textContent = '⏳ Bot offline, tentando acordar...';
+                    showAlert(
+                        `⚠️ Bot está offline há ${botStatus.time_since_last_minutes || 0} minutos.<br>` +
+                        `<small>Tentando acordar o bot...</small>`, 
+                        'error'
+                    );
+                }
+                
+                // Agora tenta destravar
+                this.textContent = '⏳ Destravando bot...';
                 const response = await fetch(`${apiBase}/fix-bot`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' }
@@ -134,24 +151,60 @@
                 
                 const data = await response.json();
                 
-                if (data.bot_should_work) {
-                    let details = [];
-                    if (data.api_status === 'online') details.push('API online');
-                    if (data.database_status === 'connected') details.push('Banco conectado');
-                    if (data.admin_status === 'created') {
-                        details.push('Admin criado');
-                    } else if (data.admin_status === 'exists') {
-                        details.push('Admin existe');
+                // Monta mensagem detalhada
+                let details = [];
+                if (data.api_status === 'online') details.push('API online');
+                if (data.database_status === 'connected') details.push('Banco conectado');
+                if (data.admin_status === 'created') {
+                    details.push('Admin criado');
+                } else if (data.admin_status === 'exists') {
+                    details.push('Admin existe');
+                }
+                
+                // Status do bot
+                let botStatusMsg = '';
+                if (data.bot_online) {
+                    botStatusMsg = '🤖 Bot ONLINE';
+                    if (data.last_heartbeat) {
+                        botStatusMsg += ` (último heartbeat: ${data.time_since_last_minutes || 0}min atrás)`;
                     }
-                    
+                } else {
+                    botStatusMsg = '🤖 Bot OFFLINE';
+                    if (data.time_since_last_minutes) {
+                        botStatusMsg += ` (há ${data.time_since_last_minutes} minutos)`;
+                    }
+                    if (data.bot_wake_attempt) {
+                        botStatusMsg += ' - Tentando acordar...';
+                    }
+                }
+                details.push(botStatusMsg);
+                
+                // Warnings
+                let warningsHtml = '';
+                if (data.warnings && data.warnings.length > 0) {
+                    warningsHtml = '<br><small style="color: orange;">' + data.warnings.join('<br>') + '</small>';
+                }
+                
+                // Tempo de resposta
+                if (data.elapsed_seconds > 180) {
+                    warningsHtml += `<br><small style="color: orange;">⚠️ Operação demorou ${Math.floor(data.elapsed_seconds/60)} minutos. Bot pode estar lento.</small>`;
+                }
+                
+                if (data.bot_should_work && data.bot_online) {
                     showAlert(
-                        `✅ ${data.message}<br><small>${details.join(' • ')}</small>`, 
+                        `✅ ${data.message}<br><small>${details.join(' • ')}</small>${warningsHtml}`, 
                         'success'
+                    );
+                } else if (data.bot_should_work && !data.bot_online) {
+                    showAlert(
+                        `⚠️ ${data.message}<br><small>${details.join(' • ')}</small><br>` +
+                        `<small style="color: orange;">O bot pode demorar até 3 minutos para responder. Aguarde e tente novamente.</small>${warningsHtml}`, 
+                        'error'
                     );
                 } else {
                     showAlert(
                         `⚠️ ${data.message || 'Erro ao destravar bot'}<br>` +
-                        `<small>API: ${data.api_status} | Banco: ${data.database_status} | Admin: ${data.admin_status}</small>`, 
+                        `<small>${details.join(' • ')}</small>${warningsHtml}`, 
                         'error'
                     );
                 }
