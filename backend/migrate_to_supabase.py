@@ -9,6 +9,12 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
 
+# Fix encoding for Windows
+if sys.platform == 'win32':
+    import codecs
+    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
+    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'strict')
+
 # Carrega variáveis de ambiente
 load_dotenv()
 
@@ -25,8 +31,8 @@ def migrate_to_supabase(backup_file: str = None, database_url: str = None):
         database_url = os.getenv("DATABASE_URL")
     
     if not database_url:
-        print("❌ DATABASE_URL não configurado!")
-        print("   Configure no .env ou passe como parâmetro.")
+        print("ERRO: DATABASE_URL nao configurado!")
+        print("   Configure no .env ou passe como parametro.")
         print("   Exemplo: postgresql://user:pass@host:5432/dbname")
         return False
     
@@ -34,41 +40,42 @@ def migrate_to_supabase(backup_file: str = None, database_url: str = None):
     if backup_file is None:
         backup_files = [f for f in os.listdir('.') if f.startswith('backup_sqlite_') and f.endswith('.json')]
         if not backup_files:
-            print("❌ Nenhum arquivo de backup encontrado!")
+            print("ERRO: Nenhum arquivo de backup encontrado!")
             print("   Execute primeiro: python backup_sqlite.py")
             return False
         backup_file = sorted(backup_files)[-1]  # Mais recente
-        print(f"📁 Usando backup: {backup_file}")
+        print(f"Usando backup: {backup_file}")
     
     # Carrega backup
-    print("📖 Carregando backup...")
+    print("Carregando backup...")
     backup_data = load_backup_json(backup_file)
     
     # Conecta ao Supabase
-    print("🔌 Conectando ao Supabase...")
+    print("Conectando ao Supabase...")
     engine = create_engine(database_url)
     
     with Session(engine) as session:
         try:
             # Migra usuários
-            print("👥 Migrando usuários...")
+            print("Migrando usuarios...")
             users = backup_data["tables"].get("users", [])
             for user_data in users:
-                # Remove id para evitar conflitos (deixa o Postgres gerar)
-                user_id = user_data.pop('id', None)
+                # Cria cópia para não modificar o original
+                user_insert = user_data.copy()
+                user_id = user_insert.pop('id', None)
                 session.execute(
                     text("""
                         INSERT INTO users (username, password_hash, role, telegram_id, nome, created_at)
                         VALUES (:username, :password_hash, :role, :telegram_id, :nome, :created_at)
                         ON CONFLICT (username) DO NOTHING
                     """),
-                    user_data
+                    user_insert
                 )
             session.commit()
-            print(f"   ✅ {len(users)} usuários migrados")
+            print(f"   OK: {len(users)} usuarios migrados")
             
             # Migra ordens de serviço
-            print("📋 Migrando ordens de serviço...")
+            print("Migrando ordens de servico...")
             ordens = backup_data["tables"].get("ordens_servico", [])
             
             # Primeiro, mapeia IDs antigos para novos (baseado em username)
@@ -82,12 +89,13 @@ def migrate_to_supabase(backup_file: str = None, database_url: str = None):
                     user_id_map[old_id] = result[0]
             
             for ordem_data in ordens:
-                ordem_id = ordem_data.pop('id', None)
+                ordem_insert = ordem_data.copy()
+                ordem_id = ordem_insert.pop('id', None)
                 # Atualiza IDs de técnicos
-                if ordem_data.get('tecnico_campo_id') in user_id_map:
-                    ordem_data['tecnico_campo_id'] = user_id_map[ordem_data['tecnico_campo_id']]
-                if ordem_data.get('tecnico_executor_id') in user_id_map:
-                    ordem_data['tecnico_executor_id'] = user_id_map[ordem_data['tecnico_executor_id']]
+                if ordem_insert.get('tecnico_campo_id') in user_id_map:
+                    ordem_insert['tecnico_campo_id'] = user_id_map[ordem_insert['tecnico_campo_id']]
+                if ordem_insert.get('tecnico_executor_id') in user_id_map:
+                    ordem_insert['tecnico_executor_id'] = user_id_map[ordem_insert['tecnico_executor_id']]
                 
                 session.execute(
                     text("""
@@ -109,23 +117,23 @@ def migrate_to_supabase(backup_file: str = None, database_url: str = None):
                         )
                         ON CONFLICT (numero_os) DO NOTHING
                     """),
-                    ordem_data
+                    ordem_insert
                 )
             session.commit()
-            print(f"   ✅ {len(ordens)} ordens migradas")
+            print(f"   OK: {len(ordens)} ordens migradas")
             
-            print("\n✅ Migração concluída com sucesso!")
+            print("\nOK: Migracao concluida com sucesso!")
             return True
             
         except Exception as e:
             session.rollback()
-            print(f"\n❌ Erro na migração: {e}")
+            print(f"\nERRO na migracao: {e}")
             import traceback
             traceback.print_exc()
             return False
 
 if __name__ == "__main__":
-    print("🚀 Migração SQLite → Supabase Postgres\n")
+    print("Migracao SQLite -> Supabase Postgres\n")
     
     backup_file = sys.argv[1] if len(sys.argv) > 1 else None
     database_url = sys.argv[2] if len(sys.argv) > 2 else None
@@ -133,10 +141,10 @@ if __name__ == "__main__":
     success = migrate_to_supabase(backup_file, database_url)
     
     if success:
-        print("\n✅ Próximos passos:")
-        print("   1. Atualize DATABASE_URL no .env")
+        print("\nProximos passos:")
+        print("   1. DATABASE_URL ja esta configurado no .env")
         print("   2. Reinicie o backend")
-        print("   3. Teste a aplicação")
+        print("   3. Teste a aplicacao")
     else:
-        print("\n❌ Migração falhou. Verifique os erros acima.")
+        print("\nERRO: Migracao falhou. Verifique os erros acima.")
         sys.exit(1)
