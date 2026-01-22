@@ -17,7 +17,7 @@ async def check_api_health() -> bool:
     try:
         base_url = config.API_BASE_URL.rstrip("/")
         async with httpx.AsyncClient() as client:
-            response = await client.get(f"{base_url}/", timeout=5.0)
+            response = await client.get(f"{base_url}/keepalive", timeout=10.0)
             return response.status_code == 200
     except Exception as e:
         logger_bot.debug(f"Health check failed: {e}")

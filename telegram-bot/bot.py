@@ -398,10 +398,10 @@ def main():
     application.add_handler(MessageHandler(filters.Regex("^❓ Ajuda$"), help_command))
     application.add_handler(conv_handler)
     
-    # Configure heartbeat every 10 minutes
+    # Configure heartbeat every 8 minutes
     if application.job_queue:
-        application.job_queue.run_repeating(api_heartbeat, interval=600, first=10)
-        logger.info("💓 Heartbeat da API agendado (10min).")
+        application.job_queue.run_repeating(api_heartbeat, interval=480, first=10)
+        logger.info("💓 Heartbeat da API agendado (8min).")
     
     logger.info("🤖 Bot configurado. Iniciando polling...")
     try:

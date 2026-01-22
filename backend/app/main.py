@@ -116,6 +116,20 @@ def health_check():
     return {"status": "healthy"}
 
 
+@app.get("/keepalive", status_code=status.HTTP_200_OK)
+def keepalive():
+    """Keep-alive endpoint to prevent idle shutdown."""
+    db = SessionLocal()
+    try:
+        db.execute(text("SELECT 1"))
+        db.commit()
+        return {"status": "alive", "database": "connected"}
+    except Exception as e:
+        return {"status": "alive", "database": "error", "message": str(e)}
+    finally:
+        db.close()
+
+
 # Global exception handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
