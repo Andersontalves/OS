@@ -55,72 +55,121 @@
 
     <script src="js/api.js"></script>
     <script>
+        // Debug: Verifica se scripts carregaram
+        console.log('Script iniciado');
+        console.log('API_BASE_URL:', typeof api !== 'undefined' ? 'api.js carregado' : 'api.js NÃO carregado');
+        
         // Get API base URL for fix bot button
         const API_BASE_URL = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
             ? 'http://localhost:8000/api/v1'
             : window.location.origin + '/api/v1';
         
-        // Redirect if already logged in
-        if (api.isAuthenticated()) {
-            window.location.href = 'dashboard.html';
-        }
-
-        const loginForm = document.getElementById('login-form');
-        const alertContainer = document.getElementById('alert-container');
-        const loginBtn = document.getElementById('login-btn');
-
-        function showAlert(message, type = 'error') {
-            alertContainer.innerHTML = `
-                <div class="alert alert-${type}">
-                    ${message}
-                </div>
-            `;
-        }
-
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value;
-
-            if (!username || !password) {
-                showAlert('Por favor, preencha todos os campos.');
+        console.log('API_BASE_URL configurado:', API_BASE_URL);
+        
+        // Aguarda DOM carregar completamente
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM carregado');
+            
+            // Redirect if already logged in
+            if (typeof api !== 'undefined' && api.isAuthenticated()) {
+                console.log('Usuário já autenticado, redirecionando...');
+                window.location.href = 'dashboard.html';
                 return;
             }
 
-            // Disable button
-            loginBtn.disabled = true;
-            loginBtn.textContent = 'Entrando...';
-            alertContainer.innerHTML = '';
+            const loginForm = document.getElementById('login-form');
+            const alertContainer = document.getElementById('alert-container');
+            const loginBtn = document.getElementById('login-btn');
+            const togglePasswordBtn = document.getElementById('toggle-password');
+            const fixBotBtn = document.getElementById('fix-bot-btn');
 
-            try {
-                await api.login(username, password);
-
-                // Success - redirect to dashboard
-                showAlert('Login realizado com sucesso!', 'success');
-                setTimeout(() => {
-                    window.location.href = 'dashboard.html';
-                }, 500);
-
-            } catch (error) {
-                showAlert(`Erro ao fazer login: ${error.message}`);
-                loginBtn.disabled = false;
-                loginBtn.textContent = 'Entrar';
+            if (!loginForm || !alertContainer || !loginBtn) {
+                console.error('Elementos do formulário não encontrados!');
+                return;
             }
-        });
 
-        // Toggle Password Visibility
-        const togglePasswordBtn = document.getElementById('toggle-password');
-        togglePasswordBtn.addEventListener('click', function () {
-            const passwordInput = document.getElementById('password');
-            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordInput.setAttribute('type', type);
-            this.textContent = type === 'password' ? '👁️' : '🙈';
-        });
+            console.log('Elementos encontrados:', {
+                loginForm: !!loginForm,
+                alertContainer: !!alertContainer,
+                loginBtn: !!loginBtn,
+                togglePasswordBtn: !!togglePasswordBtn,
+                fixBotBtn: !!fixBotBtn
+            });
 
-        // Fix Bot Button - Destrava o bot e verifica status
-        const fixBotBtn = document.getElementById('fix-bot-btn');
-        fixBotBtn.addEventListener('click', async function() {
+            function showAlert(message, type = 'error') {
+                if (!alertContainer) {
+                    console.error('alertContainer não existe!');
+                    alert(message); // Fallback
+                    return;
+                }
+                alertContainer.innerHTML = `
+                    <div class="alert alert-${type}">
+                        ${message}
+                    </div>
+                `;
+            }
+
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                console.log('Formulário submetido');
+
+                const username = document.getElementById('username').value.trim();
+                const password = document.getElementById('password').value;
+
+                if (!username || !password) {
+                    showAlert('Por favor, preencha todos os campos.');
+                    return;
+                }
+
+                // Disable button
+                loginBtn.disabled = true;
+                loginBtn.textContent = 'Entrando...';
+                alertContainer.innerHTML = '';
+
+                try {
+                    console.log('Tentando fazer login com:', username);
+                    
+                    if (typeof api === 'undefined') {
+                        throw new Error('API client não carregado. Recarregue a página.');
+                    }
+                    
+                    await api.login(username, password);
+
+                    // Success - redirect to dashboard
+                    showAlert('Login realizado com sucesso!', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 500);
+
+                } catch (error) {
+                    console.error('Erro no login:', error);
+                    showAlert(`Erro ao fazer login: ${error.message || 'Erro desconhecido'}`);
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'Entrar';
+                }
+            });
+
+            // Toggle Password Visibility
+            if (togglePasswordBtn) {
+                togglePasswordBtn.addEventListener('click', function () {
+                    console.log('Toggle password clicado');
+                    const passwordInput = document.getElementById('password');
+                    if (!passwordInput) {
+                        console.error('password input não encontrado');
+                        return;
+                    }
+                    const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                    passwordInput.setAttribute('type', type);
+                    this.textContent = type === 'password' ? '👁️' : '🙈';
+                });
+                console.log('Event listener do toggle password adicionado');
+            } else {
+                console.error('toggle-password button não encontrado!');
+            }
+
+            // Fix Bot Button - Destrava o bot e verifica status
+            if (fixBotBtn) {
+                fixBotBtn.addEventListener('click', async function() {
             const originalText = this.textContent;
             this.disabled = true;
             this.textContent = '⏳ Verificando...';
@@ -256,10 +305,25 @@
                     'error'
                 );
             } finally {
-                this.disabled = false;
-                this.textContent = originalText;
+                    this.disabled = false;
+                    this.textContent = originalText;
+                }
+                });
+                console.log('Event listener do fix-bot adicionado');
+            } else {
+                console.error('fix-bot-btn não encontrado!');
             }
         });
+        
+        // Fallback: Se DOMContentLoaded já passou, executa imediatamente
+        if (document.readyState === 'loading') {
+            // DOM ainda carregando, aguarda
+        } else {
+            // DOM já carregado, executa agora
+            console.log('DOM já estava carregado, executando imediatamente');
+            const event = new Event('DOMContentLoaded');
+            document.dispatchEvent(event);
+        }
     </script>
 </body>
 
