@@ -1,13 +1,12 @@
 from pydantic import BaseModel, Field
-from typing import Optional
 from datetime import datetime
+from typing import Optional, List
 from decimal import Decimal
 
-
-# OrdemServico Schemas
 class OrdemServicoBase(BaseModel):
     """Base schema for OrdemServico"""
-    pppoe_cliente: str = Field(..., max_length=100)
+    tecnico_campo_id: Optional[int] = None
+    status: Optional[str] = "aguardando"
     observacoes: Optional[str] = None
 
 
@@ -24,6 +23,7 @@ class OrdemServicoCreate(BaseModel):
     motivo_abertura: Optional[str] = None
     telegram_nick: Optional[str] = None
     telegram_phone: Optional[str] = None
+    cidade: Optional[str] = None
 
 
 class OrdemServicoUpdate(BaseModel):
@@ -33,76 +33,62 @@ class OrdemServicoUpdate(BaseModel):
     tecnico_executor_id: Optional[int] = None
 
 
-class OrdemServicoAssumirRequest(BaseModel):
-    """Schema for assuming an OrdemServico"""
-    tecnico_executor_id: int
-
-
-class OrdemServicoFinalizarRequest(BaseModel):
-    """Schema for finalizing an OrdemServico"""
-    foto_comprovacao: str  # URL
-    observacoes: Optional[str] = None
-
-
-class TecnicoInfo(BaseModel):
-    """Schema for technician basic info"""
+class UserSimple(BaseModel):
+    """Simplified technician schema"""
     id: int
-    nome: Optional[str]
+    nome: Optional[str] = None
     username: str
-    
+
     class Config:
         from_attributes = True
 
 
 class OrdemServicoResponse(BaseModel):
-    """Schema for OrdemServico response"""
+    """Schema for returning OrdemServico details"""
     id: int
     numero_os: str
     status: str
+    tecnico_campo_id: int
+    tecnico_executor_id: Optional[int] = None
     
-    # Técnicos
-    tecnico_campo: TecnicoInfo
-    tecnico_executor: Optional[TecnicoInfo] = None
-    
-    # Dados
+    # Photos and location
     foto_power_meter: str
     foto_caixa: str
-    localizacao_lat: Optional[Decimal]
-    localizacao_lng: Optional[Decimal]
-    localizacao_precisao: Optional[Decimal]
+    localizacao_lat: Optional[Decimal] = None
+    localizacao_lng: Optional[Decimal] = None
+    localizacao_precisao: Optional[Decimal] = None
     print_os_cliente: str
     pppoe_cliente: str
     motivo_abertura: Optional[str] = None
     telegram_nick: Optional[str] = None
     telegram_phone: Optional[str] = None
     cidade: Optional[str] = None
-    foto_comprovacao: Optional[str] = None
-    observacoes: Optional[str] = None
     
     # Timestamps
     criado_em: datetime
     iniciado_em: Optional[datetime] = None
     concluido_em: Optional[datetime] = None
+    observacoes: Optional[str] = None
     
-    # Computed times
-    tempo_espera_min: Optional[float] = None
-    tempo_execucao_min: Optional[float] = None
-    tempo_total_min: Optional[float] = None
-    
+    # Nested info
+    tecnico_campo: Optional[UserSimple] = None
+    tecnico_executor: Optional[UserSimple] = None
+
     class Config:
         from_attributes = True
 
 
 class OrdemServicoListItem(BaseModel):
-    """Simplified schema for list views"""
+    """Schema for a simplified OS in a list"""
     id: int
     numero_os: str
     status: str
-    tecnico_campo_nome: Optional[str]
-    tecnico_executor_nome: Optional[str]
-    criado_em: datetime
+    tecnico_campo_nome: Optional[str] = None
+    tecnico_executor_nome: Optional[str] = None
     pppoe_cliente: str
+    motivo_abertura: Optional[str] = None
     cidade: Optional[str] = None
-    
+    criado_em: datetime
+
     class Config:
         from_attributes = True
