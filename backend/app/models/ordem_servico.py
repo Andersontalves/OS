@@ -79,25 +79,25 @@ class OrdemServico(Base):
         return f"<OrdemServico(numero='{self.numero_os}', status='{self.status}')>"
     
     @property
-    def tempo_espera_minutos(self) -> float:
-        """Calculate waiting time in minutes"""
-        if not self.iniciado_em:
+    def tempo_espera_minutos(self) -> Optional[int]:
+        """Calculate waiting time in minutes (criado -> iniciado)"""
+        if not self.iniciado_em or not self.criado_em:
             return None
         delta = self.iniciado_em - self.criado_em
-        return delta.total_seconds() / 60
+        return int(delta.total_seconds() / 60)
     
     @property
-    def tempo_execucao_minutos(self) -> float:
-        """Calculate execution time in minutes"""
+    def tempo_execucao_minutos(self) -> Optional[int]:
+        """Calculate execution time in minutes (iniciado -> concluido)"""
         if not self.concluido_em or not self.iniciado_em:
             return None
         delta = self.concluido_em - self.iniciado_em
-        return delta.total_seconds() / 60
+        return int(delta.total_seconds() / 60)
     
     @property
-    def tempo_total_minutos(self) -> float:
-        """Calculate total time in minutes"""
-        if not self.concluido_em:
+    def tempo_total_minutos(self) -> Optional[int]:
+        """Calculate total time in minutes (criado -> concluido)"""
+        if not self.concluido_em or not self.criado_em:
             return None
         delta = self.concluido_em - self.criado_em
-        return delta.total_seconds() / 60
+        return int(delta.total_seconds() / 60)

@@ -394,8 +394,16 @@ def _format_os_response(os: OrdemServico) -> OrdemServicoResponse:
         status=os.status,
         tecnico_campo_id=os.tecnico_campo_id,
         tecnico_executor_id=os.tecnico_executor_id,
-        tecnico_campo=os.tecnico_campo,
-        tecnico_executor=os.tecnico_executor,
+        tecnico_campo=TecnicoInfo(
+            id=os.tecnico_campo.id, 
+            nome=os.tecnico_campo.nome, 
+            username=os.tecnico_campo.username
+        ) if os.tecnico_campo else None,
+        tecnico_executor=TecnicoInfo(
+            id=os.tecnico_executor.id, 
+            nome=os.tecnico_executor.nome, 
+            username=os.tecnico_executor.username
+        ) if os.tecnico_executor else None,
         foto_power_meter=os.foto_power_meter,
         foto_caixa=os.foto_caixa,
         localizacao_lat=os.localizacao_lat,
