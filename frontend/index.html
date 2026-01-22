@@ -123,12 +123,48 @@
         fixBotBtn.addEventListener('click', async function() {
             const originalText = this.textContent;
             this.disabled = true;
-            this.textContent = '⏳ Verificando bot...';
+            this.textContent = '⏳ Verificando...';
             
             try {
                 const apiBase = API_BASE_URL.replace('/api/v1', '');
                 
-                // Primeiro verifica status do bot
+                // Primeiro verifica se admin existe e pode fazer login
+                this.textContent = '⏳ Verificando admin...';
+                const checkAdminResponse = await fetch(`${apiBase}/check-admin`);
+                const adminCheck = await checkAdminResponse.json();
+                
+                if (!adminCheck.admin_exists || !adminCheck.can_login) {
+                    // Tenta criar/recriar admin
+                    this.textContent = '⏳ Criando admin...';
+                    const initResponse = await fetch(`${apiBase}/init-admin`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    const initData = await initResponse.json();
+                    
+                    if (initData.status === 'created') {
+                        showAlert(
+                            `✅ Usuário admin criado!<br>` +
+                            `<small>Username: ${initData.username} | Senha: ${initData.password}</small><br>` +
+                            `<small>Agora você pode fazer login.</small>`, 
+                            'success'
+                        );
+                        this.disabled = false;
+                        this.textContent = originalText;
+                        return;
+                    } else if (initData.status === 'error') {
+                        showAlert(
+                            `❌ Erro ao criar admin: ${initData.message}`, 
+                            'error'
+                        );
+                        this.disabled = false;
+                        this.textContent = originalText;
+                        return;
+                    }
+                }
+                
+                // Verifica status do bot
+                this.textContent = '⏳ Verificando bot...';
                 const statusResponse = await fetch(`${apiBase}/bot-status`);
                 const botStatus = await statusResponse.json();
                 
@@ -159,6 +195,11 @@
                     details.push('Admin criado');
                 } else if (data.admin_status === 'exists') {
                     details.push('Admin existe');
+                }
+                
+                // Adiciona info do admin check
+                if (adminCheck.admin_exists) {
+                    details.push(`Admin: ${adminCheck.can_login ? 'OK' : 'ERRO'}`);
                 }
                 
                 // Status do bot
