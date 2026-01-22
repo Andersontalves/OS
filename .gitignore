@@ -34,3 +34,7 @@ backend/rename_campo_to_interno.py
 backend/verify_jwt.py
 backend/test_api_os.py
 fix_envs.py
+
+# Backup files
+backend/backup_sqlite_*.sql
+backend/backup_sqlite_*.json
