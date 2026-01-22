@@ -50,22 +50,49 @@ async def lifespan(app: FastAPI):
             except:
                 pass
     
+    # Cria tabelas se não existirem
+    try:
+        Base.metadata.create_all(bind=engine)
+        print("✅ Tabelas verificadas/criadas!")
+    except Exception as e:
+        print(f"⚠️ Aviso ao criar tabelas: {e}")
+    
+    # Garante que usuários padrão existem
     db = SessionLocal()
     try:
-        # Garante que as colunas novas não causem erro ao retornar respostas nulas
-        # E verifica usuários padrão
-        if db.query(User).count() == 0:
+        user_count = db.query(User).count()
+        print(f"📊 Usuários no banco: {user_count}")
+        
+        # Verifica se admin existe especificamente
+        admin = db.query(User).filter(User.username == "admin").first()
+        if not admin:
+            print("🆕 Criando usuário admin...")
+            admin_user = User(
+                username="admin",
+                password_hash=hash_password("admin123"),
+                role="admin",
+                nome="Administrador do Sistema"
+            )
+            db.add(admin_user)
+            db.commit()
+            print("✅ Usuário admin criado com sucesso!")
+        else:
+            print(f"✅ Usuário admin já existe (ID: {admin.id})")
+        
+        # Se não há usuários, cria os padrão
+        if user_count == 0:
             print("🆕 Criando usuários padrão...")
             users = [
-                User(username="admin", password_hash=hash_password("admin123"), role="admin"),
-                User(username="monitor", password_hash=hash_password("monitor123"), role="monitoramento"),
-                User(username="tecnico1", password_hash=hash_password("tecnico123"), role="execucao")
+                User(username="monitor", password_hash=hash_password("monitor123"), role="monitoramento", nome="Monitor de Operações"),
+                User(username="tecnico1", password_hash=hash_password("tecnico123"), role="execucao", nome="Técnico Executor 1")
             ]
             db.add_all(users)
             db.commit()
             print("✅ Usuários padrão criados com sucesso!")
     except Exception as e:
         print(f"❌ Erro ao inicializar banco: {e}")
+        import traceback
+        traceback.print_exc()
     finally:
         db.close()
     
@@ -166,10 +193,17 @@ def init_admin():
         # Verifica se admin existe
         admin = db.query(User).filter(User.username == "admin").first()
         if admin:
+            # Testa se a senha está correta
+            from .services.auth_service import verify_password
+            password_ok = verify_password("admin123", admin.password_hash)
+            
             return {
                 "status": "exists",
                 "message": "Usuário admin já existe",
-                "user_id": admin.id
+                "user_id": admin.id,
+                "password_valid": password_ok,
+                "username": admin.username,
+                "role": admin.role
             }
         
         # Cria admin
@@ -186,13 +220,61 @@ def init_admin():
         return {
             "status": "created",
             "message": "Usuário admin criado com sucesso",
-            "user_id": admin_user.id
+            "user_id": admin_user.id,
+            "username": admin_user.username,
+            "password": "admin123",
+            "role": admin_user.role
         }
     except Exception as e:
         db.rollback()
+        import traceback
         return {
             "status": "error",
-            "message": str(e)
+            "message": str(e),
+            "traceback": traceback.format_exc()
+        }
+    finally:
+        db.close()
+
+
+@app.get("/check-admin", status_code=status.HTTP_200_OK)
+def check_admin():
+    """Endpoint para verificar se admin existe e pode fazer login"""
+    db = SessionLocal()
+    try:
+        admin = db.query(User).filter(User.username == "admin").first()
+        
+        if not admin:
+            return {
+                "admin_exists": False,
+                "message": "Usuário admin não existe",
+                "can_login": False,
+                "suggestion": "Use /init-admin para criar"
+            }
+        
+        # Testa senha
+        from .services.auth_service import verify_password
+        password_ok = verify_password("admin123", admin.password_hash)
+        
+        # Testa login completo
+        from .services.auth_service import authenticate_user
+        test_login = authenticate_user(db, "admin", "admin123")
+        
+        return {
+            "admin_exists": True,
+            "user_id": admin.id,
+            "username": admin.username,
+            "role": admin.role,
+            "password_hash_valid": password_ok,
+            "can_login": test_login is not None,
+            "message": "Admin pode fazer login" if test_login else "Admin existe mas login falha"
+        }
+    except Exception as e:
+        import traceback
+        return {
+            "admin_exists": False,
+            "error": str(e),
+            "traceback": traceback.format_exc()
         }
     finally:
         db.close()
