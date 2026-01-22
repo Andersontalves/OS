@@ -27,6 +27,7 @@ from telegram.ext import (
 import config
 from services import upload_photo_to_cloudinary, create_os_via_api, check_api_health
 import time
+import asyncio
 
 # Enable logging
 logging.basicConfig(
@@ -351,6 +352,17 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     return ConversationHandler.END
 
+async def api_heartbeat(context: ContextTypes.DEFAULT_TYPE):
+    """Callback for JobQueue to keep API awake"""
+    try:
+        is_alive = await check_api_health()
+        if is_alive:
+            logger.debug("💓 API está acordada.")
+        else:
+            logger.warning("💓 API não respondeu ao heartbeat.")
+    except Exception as e:
+        logger.error(f"💓 Falha no heartbeat: {e}")
+
 def main():
     """Start the bot"""
     if not config.TELEGRAM_BOT_TOKEN:
@@ -386,6 +398,11 @@ def main():
     application.add_handler(MessageHandler(filters.Regex("^❓ Ajuda$"), help_command))
     application.add_handler(conv_handler)
     
+    # Configure heartbeat every 10 minutes
+    if application.job_queue:
+        application.job_queue.run_repeating(api_heartbeat, interval=600, first=10)
+        logger.info("💓 Heartbeat da API agendado (10min).")
+    
     logger.info("🤖 Bot configurado. Iniciando polling...")
     try:
         application.run_polling(allowed_updates=Update.ALL_TYPES, close_loop=False)
@@ -401,6 +418,22 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"Bot is alive!")
     def log_message(self, format, *args):
         return
+
+async def api_heartbeat():
+    """Background task to keep API awake by pinging it every 10 minutes"""
+    logger.info("💓 Heartbeat da API iniciado.")
+    while True:
+        try:
+            is_alive = await check_api_health()
+            if is_alive:
+                logger.debug("💓 API está acordada.")
+            else:
+                logger.warning("💓 API não respondeu ao heartbeat.")
+        except Exception as e:
+            logger.error(f"💓 Falha no heartbeat: {e}")
+        
+        # Ping every 10 minutes (Render free tier sleeps after 15)
+        await asyncio.sleep(600)
 
 def run_health_check_server():
     try:
