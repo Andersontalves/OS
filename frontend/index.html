@@ -118,31 +118,49 @@
             this.textContent = type === 'password' ? '👁️' : '🙈';
         });
 
-        // Fix Bot Button
+        // Fix Bot Button - Destrava o bot
         const fixBotBtn = document.getElementById('fix-bot-btn');
         fixBotBtn.addEventListener('click', async function() {
             const originalText = this.textContent;
             this.disabled = true;
-            this.textContent = '⏳ Processando...';
+            this.textContent = '⏳ Destravando bot...';
             
             try {
                 const apiBase = API_BASE_URL.replace('/api/v1', '');
-                const response = await fetch(`${apiBase}/init-admin`, {
+                const response = await fetch(`${apiBase}/fix-bot`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' }
                 });
                 
                 const data = await response.json();
                 
-                if (data.status === 'created') {
-                    showAlert('✅ Bot destravado! Usuário admin criado com sucesso. O bot deve funcionar agora.', 'success');
-                } else if (data.status === 'exists') {
-                    showAlert('ℹ️ Usuário admin já existe. O bot deve estar funcionando normalmente.', 'success');
+                if (data.bot_should_work) {
+                    let details = [];
+                    if (data.api_status === 'online') details.push('API online');
+                    if (data.database_status === 'connected') details.push('Banco conectado');
+                    if (data.admin_status === 'created') {
+                        details.push('Admin criado');
+                    } else if (data.admin_status === 'exists') {
+                        details.push('Admin existe');
+                    }
+                    
+                    showAlert(
+                        `✅ ${data.message}<br><small>${details.join(' • ')}</small>`, 
+                        'success'
+                    );
                 } else {
-                    showAlert(`⚠️ ${data.message || 'Erro ao destravar bot'}`, 'error');
+                    showAlert(
+                        `⚠️ ${data.message || 'Erro ao destravar bot'}<br>` +
+                        `<small>API: ${data.api_status} | Banco: ${data.database_status} | Admin: ${data.admin_status}</small>`, 
+                        'error'
+                    );
                 }
             } catch (error) {
-                showAlert(`❌ Erro ao conectar com a API: ${error.message}`, 'error');
+                showAlert(
+                    `❌ Erro ao conectar com a API: ${error.message}<br>` +
+                    `<small>Verifique se a API está online</small>`, 
+                    'error'
+                );
             } finally {
                 this.disabled = false;
                 this.textContent = originalText;

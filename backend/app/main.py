@@ -170,6 +170,62 @@ def init_admin():
         db.close()
 
 
+@app.post("/fix-bot", status_code=status.HTTP_200_OK)
+def fix_bot():
+    """Endpoint para destravar o bot - garante admin existe e API está respondendo"""
+    db = SessionLocal()
+    results = {
+        "api_status": "ok",
+        "admin_status": "unknown",
+        "database_status": "unknown",
+        "bot_should_work": False
+    }
+    
+    try:
+        # 1. Testa conexão com banco
+        db.execute(text("SELECT 1"))
+        results["database_status"] = "connected"
+        
+        # 2. Garante que admin existe
+        admin = db.query(User).filter(User.username == "admin").first()
+        if admin:
+            results["admin_status"] = "exists"
+            results["admin_id"] = admin.id
+        else:
+            # Cria admin
+            admin_user = User(
+                username="admin",
+                password_hash=hash_password("admin123"),
+                role="admin",
+                nome="Administrador do Sistema"
+            )
+            db.add(admin_user)
+            db.commit()
+            db.refresh(admin_user)
+            results["admin_status"] = "created"
+            results["admin_id"] = admin_user.id
+        
+        # 3. Testa se API está respondendo (já estamos aqui, então está OK)
+        results["api_status"] = "online"
+        
+        # 4. Se tudo OK, bot deve funcionar
+        if results["database_status"] == "connected" and results["admin_status"] in ["exists", "created"]:
+            results["bot_should_work"] = True
+            results["message"] = "✅ Bot destravado! API online, banco conectado e usuário admin garantido."
+        else:
+            results["message"] = "⚠️ Algum problema detectado. Verifique os detalhes."
+            
+    except Exception as e:
+        results["api_status"] = "error"
+        results["database_status"] = "error"
+        results["message"] = f"❌ Erro: {str(e)}"
+        db.rollback()
+    finally:
+        db.close()
+    
+    return results
+
+
 # Global exception handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
