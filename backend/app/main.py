@@ -130,6 +130,46 @@ def keepalive():
         db.close()
 
 
+@app.post("/init-admin", status_code=status.HTTP_200_OK)
+def init_admin():
+    """Endpoint temporário para criar usuário admin se não existir"""
+    db = SessionLocal()
+    try:
+        # Verifica se admin existe
+        admin = db.query(User).filter(User.username == "admin").first()
+        if admin:
+            return {
+                "status": "exists",
+                "message": "Usuário admin já existe",
+                "user_id": admin.id
+            }
+        
+        # Cria admin
+        admin_user = User(
+            username="admin",
+            password_hash=hash_password("admin123"),
+            role="admin",
+            nome="Administrador do Sistema"
+        )
+        db.add(admin_user)
+        db.commit()
+        db.refresh(admin_user)
+        
+        return {
+            "status": "created",
+            "message": "Usuário admin criado com sucesso",
+            "user_id": admin_user.id
+        }
+    except Exception as e:
+        db.rollback()
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+    finally:
+        db.close()
+
+
 # Global exception handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
