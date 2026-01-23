@@ -13,7 +13,7 @@ class OrdemServicoBase(BaseModel):
 class OrdemServicoCreate(BaseModel):
     """Schema for creating an OrdemServico"""
     tecnico_campo_id: int
-    foto_power_meter: str  # URL
+    foto_power_meter: Optional[str] = None  # URL (opcional para rompimento/manutenção)
     foto_caixa: str  # URL
     localizacao_lat: Optional[Decimal] = None
     localizacao_lng: Optional[Decimal] = None
@@ -67,13 +67,13 @@ class OrdemServicoResponse(BaseModel):
     tecnico_executor_id: Optional[int] = None
     
     # Photos and location
-    foto_power_meter: str
+    foto_power_meter: Optional[str] = None  # Opcional para rompimento/manutenção
     foto_caixa: str
     localizacao_lat: Optional[Decimal] = None
     localizacao_lng: Optional[Decimal] = None
     localizacao_precisao: Optional[Decimal] = None
-    print_os_cliente: str
-    pppoe_cliente: str
+    print_os_cliente: Optional[str] = None  # Opcional para rompimento/manutenção
+    pppoe_cliente: Optional[str] = None  # Opcional para rompimento
     motivo_abertura: Optional[str] = None
     telegram_nick: Optional[str] = None
     telegram_phone: Optional[str] = None

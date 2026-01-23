@@ -20,13 +20,13 @@ class OrdemServico(Base):
     tecnico_campo_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
     # Dados coletados
-    foto_power_meter = Column(Text, nullable=False)  # URL Cloudinary
+    foto_power_meter = Column(Text, nullable=True)  # URL Cloudinary (opcional para rompimento/manutenção)
     foto_caixa = Column(Text, nullable=False)  # URL Cloudinary
     localizacao_lat = Column(Numeric(10, 8), nullable=True)
     localizacao_lng = Column(Numeric(11, 8), nullable=True)
     localizacao_precisao = Column(Numeric(6, 2), nullable=True)  # Em metros
-    print_os_cliente = Column(Text, nullable=False)  # URL Cloudinary
-    pppoe_cliente = Column(String(100), nullable=False)
+    print_os_cliente = Column(Text, nullable=True)  # URL Cloudinary (opcional para rompimento/manutenção)
+    pppoe_cliente = Column(String(100), nullable=True)  # Opcional para rompimento
     
     # Novos campos solicitados
     motivo_abertura = Column(String(50), nullable=True) # Caixa sem sinal, Ampliação, etc
