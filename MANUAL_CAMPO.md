@@ -56,11 +56,10 @@ Se você escolher **"Rompimento"** como motivo:
 2. **Porta(s) da Placa/OLT**: 
    - Digite a porta (ex.: `0/1/1`)
    - **Você pode adicionar múltiplas portas** separadas por vírgula (ex.: `0/1/1, 0/1/2, 0/1/3`)
-3. **Foto do Power Meter**: Envie a foto do power meter
-4. **Foto do Rompimento**: Envie a foto do local do rompimento
-5. **Confirmação**: Revise os dados e confirme
+3. **Foto do Rompimento**: Envie a foto do local do rompimento
+4. **Confirmação**: Revise os dados e confirme
 
-**⚠️ Não será pedido**: Print da O.S e PPPOE
+**⚠️ Não será pedido**: Power Meter, Print da O.S e PPPOE
 
 ---
 
@@ -71,13 +70,12 @@ Se você escolher **"Manutenções"** como motivo:
 1. **Prazo em Horas**: Digite quantas horas para resolução (ex.: `4` para 4 horas)
 2. **Porta(s) da Placa/OLT**: 
    - Digite a porta (ex.: `0/1/1`)
-   - **Você pode adicionar múltiplas portas** separadas por vírgula (ex.: `0/1/1, 0/1/2`)
-3. **Foto do Power Meter**: Envie a foto do power meter
-4. **Foto do Local da Manutenção**: Envie a foto do local onde será feita a manutenção
-5. **PPPOE**: Digite o PPPOE do cliente
-6. **Confirmação**: Revise os dados e confirme
+   - **Você pode adicionar múltiplas portas** separadas por vírgula (ex.: `0/1/1, 0/1/2, 0/2/1`)
+3. **Foto do Local da Manutenção**: Envie a foto do local onde será feita a manutenção
+4. **PPPOE**: Digite o PPPOE do cliente
+5. **Confirmação**: Revise os dados e confirme
 
-**⚠️ Não será pedido**: Print da O.S
+**⚠️ Não será pedido**: Power Meter e Print da O.S
 
 ---
 
@@ -131,9 +129,9 @@ A qualquer momento, você pode:
 
 ### **Fotos**:
 - Tire fotos claras e bem iluminadas
-- Para **Rompimento**: foto do local do rompimento
-- Para **Manutenções**: foto do local onde será feita a manutenção
-- Para **O.S Normal**: foto da caixa
+- Para **Rompimento**: foto do local do rompimento (não precisa de Power Meter)
+- Para **Manutenções**: foto do local onde será feita a manutenção (não precisa de Power Meter)
+- Para **O.S Normal**: foto do Power Meter e foto da caixa
 
 ### **Prazo**:
 - Digite apenas o número de horas (ex.: `2`, `4`, `8`)
