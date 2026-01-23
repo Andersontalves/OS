@@ -314,7 +314,7 @@
                             <td>${os.cidade || '-'}</td>
                             <td>${os.prazo_horas ? os.prazo_horas + 'h' : '-'}</td>
                             <td>${formatTimeRemaining(os.prazo_fim, os.prazo_horas, os.criado_em)}</td>
-                            <td>${os.porta_placa_olt || '-'}</td>
+                            <td>${formatPortaPlaca(os.porta_placa_olt)}</td>
                             <td>${os.tecnico_campo_nome || 'N/A'}</td>
                             <td>${os.tecnico_executor_nome || '-'}</td>
                             <td>${os.pppoe_cliente}</td>

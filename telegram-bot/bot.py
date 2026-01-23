@@ -264,19 +264,31 @@ async def receive_prazo_horas_manutencao(update: Update, context: ContextTypes.D
         return PRAZO_HORAS
 
 async def receive_porta_placa(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Recebe porta da placa/OLT e continua com fluxo normal (power meter)"""
+    """Recebe porta(s) da placa/OLT (pode ser múltiplas separadas por vírgula) e continua com fluxo normal (power meter)"""
     porta = update.message.text.strip()
     context.user_data["porta_placa_olt"] = porta
+    
+    # Contar quantas portas foram informadas
+    portas = [p.strip() for p in porta.split(',') if p.strip()]
+    num_portas = len(portas)
     
     # Continuar com fluxo normal (power meter) - já temos localização e cidade
     cancel_kb = ReplyKeyboardMarkup([[KeyboardButton("❌ Cancelar Operação")]], resize_keyboard=True)
     
-    await update.message.reply_text(
-        f"✅ Porta registrada: *{porta}*\n\n"
-        "4️⃣ Agora envie a foto do *POWER METER*...",
-        parse_mode="Markdown",
-        reply_markup=cancel_kb
-    )
+    if num_portas > 1:
+        await update.message.reply_text(
+            f"✅ *{num_portas} portas* registradas:\n{porta}\n\n"
+            "4️⃣ Agora envie a foto do *POWER METER*...",
+            parse_mode="Markdown",
+            reply_markup=cancel_kb
+        )
+    else:
+        await update.message.reply_text(
+            f"✅ Porta registrada: *{porta}*\n\n"
+            "4️⃣ Agora envie a foto do *POWER METER*...",
+            parse_mode="Markdown",
+            reply_markup=cancel_kb
+        )
     return POWER_METER
 
 async def receive_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -410,45 +422,105 @@ async def receive_power_meter(update: Update, context: ContextTypes.DEFAULT_TYPE
         photo_url = upload_photo_to_cloudinary(photo_bytes, filename=f"pm_{update.effective_user.id}")
         context.user_data["foto_power_meter"] = photo_url
         
-        await update.message.reply_text(
-            "✅ Foto PM recebida!\n\n"
-            "5️⃣ Agora envie a foto da *CAIXA*:",
-            parse_mode="Markdown"
-        )
-        return CAIXA
+        tipo_os = context.user_data.get("tipo_os", "normal")
+        
+        # Se for rompimento ou manutenção, pedir foto do rompimento/local em vez de caixa
+        if tipo_os == "rompimento":
+            await update.message.reply_text(
+                "✅ Foto PM recebida!\n\n"
+                "5️⃣ Agora envie a foto do *ROMPIMENTO*:",
+                parse_mode="Markdown"
+            )
+            return CAIXA  # Usa mesmo estado, mas será tratado diferente
+        elif tipo_os == "manutencao":
+            await update.message.reply_text(
+                "✅ Foto PM recebida!\n\n"
+                "5️⃣ Agora envie a foto do *LOCAL DA MANUTENÇÃO*:",
+                parse_mode="Markdown"
+            )
+            return CAIXA  # Usa mesmo estado, mas será tratado diferente
+        else:
+            # O.S normal: pedir foto da caixa
+            await update.message.reply_text(
+                "✅ Foto PM recebida!\n\n"
+                "5️⃣ Agora envie a foto da *CAIXA*:",
+                parse_mode="Markdown"
+            )
+            return CAIXA
     except Exception as e:
         logger.error(f"Error PM photo: {e}")
         await update.message.reply_text(f"❌ Erro: {str(e)}")
         return POWER_METER
 
 async def receive_caixa(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Receive and process box photo"""
+    """Receive and process box/rompimento/manutenção photo"""
     if not update.message.photo:
         await update.message.reply_text("❌ Envie uma *foto*.", parse_mode="Markdown")
         return CAIXA
     
     photo = update.message.photo[-1]
+    tipo_os = context.user_data.get("tipo_os", "normal")
+    
     try:
         photo_file = await context.bot.get_file(photo.file_id)
         photo_bytes = await photo_file.download_as_bytearray()
         
         await update.message.reply_text("📤 Fazendo upload...")
-        photo_url = upload_photo_to_cloudinary(photo_bytes, filename=f"cx_{update.effective_user.id}")
-        context.user_data["foto_caixa"] = photo_url
         
-        await update.message.reply_text(
-            "✅ Foto Caixa recebida!\n\n"
-            "6️⃣ Envie o *PRINT da O.S* (nome/end do cliente):",
-            parse_mode="Markdown"
-        )
-        return PRINT_OS
+        # Nome do arquivo baseado no tipo
+        if tipo_os == "rompimento":
+            photo_url = upload_photo_to_cloudinary(photo_bytes, filename=f"rompimento_{update.effective_user.id}")
+            context.user_data["foto_caixa"] = photo_url  # Usa mesmo campo, mas é foto do rompimento
+            
+            # Para rompimento: pular print O.S e PPPOE, ir direto para confirmação
+            await show_confirmation_rompimento(update, context)
+            return CONFIRMACAO
+        elif tipo_os == "manutencao":
+            photo_url = upload_photo_to_cloudinary(photo_bytes, filename=f"manutencao_{update.effective_user.id}")
+            context.user_data["foto_caixa"] = photo_url  # Usa mesmo campo, mas é foto do local da manutenção
+            
+            # Para manutenção: pular print O.S, mas pedir PPPOE
+            await update.message.reply_text(
+                "✅ Foto do local da manutenção recebida!\n\n"
+                "6️⃣ Por último, digite o *PPPOE* do cliente:",
+                parse_mode="Markdown"
+            )
+            return PPPOE
+        else:
+            # O.S normal: continuar com print O.S
+            photo_url = upload_photo_to_cloudinary(photo_bytes, filename=f"cx_{update.effective_user.id}")
+            context.user_data["foto_caixa"] = photo_url
+            
+            await update.message.reply_text(
+                "✅ Foto Caixa recebida!\n\n"
+                "6️⃣ Envie o *PRINT da O.S* (nome/end do cliente):",
+                parse_mode="Markdown"
+            )
+            return PRINT_OS
     except Exception as e:
-        logger.error(f"Error Caixa photo: {e}")
+        logger.error(f"Error photo: {e}")
         await update.message.reply_text(f"❌ Erro: {str(e)}")
         return CAIXA
 
 async def receive_print_os(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Receive and process print OS"""
+    """Receive and process print OS (apenas para O.S normal)"""
+    tipo_os = context.user_data.get("tipo_os", "normal")
+    
+    # Se for rompimento ou manutenção, não deveria chegar aqui, mas se chegar, pular
+    if tipo_os in ["rompimento", "manutencao"]:
+        # Pular print O.S e ir direto para confirmação ou PPPOE
+        if tipo_os == "rompimento":
+            await show_confirmation_rompimento(update, context)
+            return CONFIRMACAO
+        else:
+            # Manutenção: pedir PPPOE
+            await update.message.reply_text(
+                "6️⃣ Digite o *PPPOE* do cliente:",
+                parse_mode="Markdown"
+            )
+            return PPPOE
+    
+    # O.S normal: processar print O.S normalmente
     if not update.message.photo:
         await update.message.reply_text("❌ Envie uma *foto*.", parse_mode="Markdown")
         return PRINT_OS
@@ -478,17 +550,62 @@ async def receive_pppoe(update: Update, context: ContextTypes.DEFAULT_TYPE):
     pppoe = update.message.text.strip()
     context.user_data["pppoe_cliente"] = pppoe
     
+    tipo_os = context.user_data.get("tipo_os", "normal")
+    
+    # Mostrar resumo baseado no tipo
+    if tipo_os == "rompimento":
+        # Não deveria chegar aqui para rompimento, mas se chegar, mostrar resumo sem PPPOE
+        await show_confirmation_rompimento(update, context)
+        return CONFIRMACAO
+    else:
+        # O.S normal ou manutenção: mostrar resumo com PPPOE
+        summary = (
+            "📝 *Resumo da O.S:*\n"
+            f"📍 Cidade: *{context.user_data.get('cidade')}*\n"
+            f"💡 Motivo: *{context.user_data.get('motivo_abertura')}*\n"
+            f"🔑 PPPOE: `{pppoe}`\n\n"
+            "*Confirmar abertura?*"
+        )
+        
+        keyboard = ReplyKeyboardMarkup([["✅ Confirmar"], ["❌ Cancelar Operação"]], one_time_keyboard=True, resize_keyboard=True)
+        await update.message.reply_text(summary, reply_markup=keyboard, parse_mode="Markdown")
+        return CONFIRMACAO
+
+async def show_confirmation_rompimento(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Mostra resumo de confirmação para rompimento (sem print O.S e sem PPPOE)"""
+    tipo_os = context.user_data.get("tipo_os", "normal")
+    prazo_horas = context.user_data.get("prazo_horas")
+    porta = context.user_data.get("porta_placa_olt")
+    
     summary = (
         "📝 *Resumo da O.S:*\n"
         f"📍 Cidade: *{context.user_data.get('cidade')}*\n"
         f"💡 Motivo: *{context.user_data.get('motivo_abertura')}*\n"
-        f"🔑 PPPOE: `{pppoe}`\n\n"
-        "*Confirmar abertura?*"
     )
+    
+    if tipo_os == "rompimento":
+        if prazo_horas:
+            summary += f"⏰ Prazo: *{prazo_horas} horas*\n"
+        if porta:
+            portas = [p.strip() for p in porta.split(',') if p.strip()]
+            if len(portas) > 1:
+                summary += f"🔌 Portas: *{porta}*\n"
+            else:
+                summary += f"🔌 Porta: *{porta}*\n"
+    elif tipo_os == "manutencao":
+        if prazo_horas:
+            summary += f"⏰ Prazo: *{prazo_horas} horas*\n"
+        if porta:
+            portas = [p.strip() for p in porta.split(',') if p.strip()]
+            if len(portas) > 1:
+                summary += f"🔌 Portas: *{porta}*\n"
+            else:
+                summary += f"🔌 Porta: *{porta}*\n"
+    
+    summary += "\n*Confirmar abertura?*"
     
     keyboard = ReplyKeyboardMarkup([["✅ Confirmar"], ["❌ Cancelar Operação"]], one_time_keyboard=True, resize_keyboard=True)
     await update.message.reply_text(summary, reply_markup=keyboard, parse_mode="Markdown")
-    return CONFIRMACAO
 
 def get_prazo_handler(context):
     """Retorna handler correto baseado no tipo_os"""
@@ -511,15 +628,14 @@ async def confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 from datetime import datetime
                 prazo_fim = datetime.fromisoformat(context.user_data["prazo_fim"])
             
+            # Preparar dados baseado no tipo de O.S
             os_data = {
                 "tecnico_campo_id": TECNICO_ID_DEFAULT,
                 "foto_power_meter": context.user_data["foto_power_meter"],
-                "foto_caixa": context.user_data["foto_caixa"],
+                "foto_caixa": context.user_data["foto_caixa"],  # Pode ser foto do rompimento/manutenção
                 "localizacao_lat": context.user_data["localizacao_lat"],
                 "localizacao_lng": context.user_data["localizacao_lng"],
                 "localizacao_precisao": context.user_data.get("localizacao_precisao"),
-                "print_os_cliente": context.user_data["print_os_cliente"],
-                "pppoe_cliente": context.user_data["pppoe_cliente"],
                 "motivo_abertura": context.user_data.get("motivo_abertura"),
                 "telegram_nick": context.user_data.get("telegram_nick"),
                 "cidade": context.user_data.get("cidade"),
@@ -528,6 +644,13 @@ async def confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "prazo_fim": prazo_fim.isoformat() if prazo_fim else None,
                 "porta_placa_olt": context.user_data.get("porta_placa_olt")
             }
+            
+            # Adicionar campos opcionais apenas se existirem
+            if context.user_data.get("print_os_cliente"):
+                os_data["print_os_cliente"] = context.user_data["print_os_cliente"]
+            
+            if context.user_data.get("pppoe_cliente"):
+                os_data["pppoe_cliente"] = context.user_data["pppoe_cliente"]
             result = await create_os_via_api(os_data)
             
             # Mensagem com informações adicionais para rompimento/manutenção

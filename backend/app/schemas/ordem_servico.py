@@ -18,8 +18,8 @@ class OrdemServicoCreate(BaseModel):
     localizacao_lat: Optional[Decimal] = None
     localizacao_lng: Optional[Decimal] = None
     localizacao_precisao: Optional[Decimal] = None
-    print_os_cliente: str  # URL
-    pppoe_cliente: str = Field(..., max_length=100)
+    print_os_cliente: Optional[str] = None  # URL (opcional para rompimento/manutenção)
+    pppoe_cliente: Optional[str] = Field(None, max_length=100)  # Opcional para rompimento
     motivo_abertura: Optional[str] = None
     telegram_nick: Optional[str] = None
     telegram_phone: Optional[str] = None

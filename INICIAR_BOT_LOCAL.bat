@@ -1,34 +1,29 @@
 @echo off
+chcp 65001 >nul
 echo ========================================
-echo    Iniciando Bot Telegram Local
+echo   INICIANDO BOT LOCAL
 echo ========================================
+echo.
+echo Este bot vai rodar localmente e nao vai travar!
 echo.
 
 cd telegram-bot
 
-echo Verificando se .env existe...
-if not exist .env (
+if not exist ".env.local" (
+    echo ERRO: Arquivo .env.local nao encontrado!
     echo.
-    echo [ERRO] Arquivo .env nao encontrado!
-    echo.
-    echo Crie o arquivo .env com:
-    echo   TELEGRAM_BOT_TOKEN=seu_token
-    echo   API_BASE_URL=https://os-sistema-api.onrender.com
-    echo   CLOUDINARY_URL=sua_url
-    echo.
+    echo Execute primeiro: CONFIGURAR_TUDO.bat
+    echo Ou crie manualmente o arquivo telegram-bot\.env.local
     pause
     exit /b 1
 )
 
+echo [OK] Configuracao encontrada (.env.local)
 echo.
-echo Iniciando bot...
+echo Iniciando bot local...
 echo.
-python bot.py
+echo O bot vai rodar continuamente.
+echo Pressione Ctrl+C para parar
+echo.
 
-if errorlevel 1 (
-    echo.
-    echo [ERRO] Bot parou com erro!
-    echo Verifique os logs acima.
-    echo.
-    pause
-)
+python bot.py

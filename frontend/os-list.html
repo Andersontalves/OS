@@ -204,10 +204,12 @@
                             <strong>Status:</strong><br>
                             <span class="badge badge-${os.status}">${getStatusLabel(os.status)}</span>
                         </div>
+                        ${os.pppoe_cliente ? `
                         <div>
                             <strong>PPPOE:</strong><br>
                             ${os.pppoe_cliente}
                         </div>
+                        ` : ''}
                     </div>
 
                     <div class="grid grid-2 mb-3">
@@ -244,11 +246,24 @@
                         <strong>Fotos:</strong><br>
                         <div class="grid grid-2 mt-1">
                             <a href="${os.foto_power_meter}" target="_blank" class="btn btn-sm btn-secondary">🖼️ Power Meter</a>
-                            <a href="${os.foto_caixa}" target="_blank" class="btn btn-sm btn-secondary">🖼️ Caixa</a>
-                            <a href="${os.print_os_cliente}" target="_blank" class="btn btn-sm btn-secondary">🖼️ Print O.S</a>
+                            ${os.foto_caixa ? `<a href="${os.foto_caixa}" target="_blank" class="btn btn-sm btn-secondary">🖼️ ${getFotoLabel(os.tipo_os)}</a>` : ''}
+                            ${os.print_os_cliente ? `<a href="${os.print_os_cliente}" target="_blank" class="btn btn-sm btn-secondary">🖼️ Print O.S</a>` : ''}
                             ${os.foto_comprovacao ? `<a href="${os.foto_comprovacao}" target="_blank" class="btn btn-sm btn-secondary">🖼️ Comprovação</a>` : ''}
                         </div>
                     </div>
+                    
+                    ${os.tipo_os && (os.tipo_os === 'rompimento' || os.tipo_os === 'manutencao') ? `
+                    <div class="grid grid-2 mb-3">
+                        <div>
+                            <strong>Prazo:</strong><br>
+                            ${os.prazo_horas ? os.prazo_horas + ' horas' : '-'}
+                        </div>
+                        <div>
+                            <strong>Porta(s) Placa/OLT:</strong><br>
+                            ${formatPortaPlacaDetalhes(os.porta_placa_olt)}
+                        </div>
+                    </div>
+                    ` : ''}
 
                     <div class="grid grid-3 mb-3">
                         <div>
@@ -425,6 +440,19 @@
         function formatDateTime(dateString) {
             const date = new Date(dateString);
             return date.toLocaleString('pt-BR');
+        }
+
+        function getFotoLabel(tipoOs) {
+            if (tipoOs === 'rompimento') return 'Rompimento';
+            if (tipoOs === 'manutencao') return 'Local da Manutenção';
+            return 'Caixa';
+        }
+
+        function formatPortaPlacaDetalhes(porta) {
+            if (!porta) return '-';
+            // Mostrar todas as portas separadas por vírgula
+            const portas = porta.split(',').map(p => p.trim()).filter(p => p);
+            return portas.join(', ');
         }
 
         // Event listeners
