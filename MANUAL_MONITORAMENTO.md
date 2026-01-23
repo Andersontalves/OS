@@ -50,12 +50,16 @@ Clique em **"Ordens de Serviço"** no menu para ver a lista completa.
   - Status da O.S
   - Motivo de abertura
   - Localização (com link para Google Maps)
-  - Fotos (Power Meter, Caixa/Rompimento, Print O.S, Comprovação)
+  - **Fotos**:
+    - **O.S Normal**: Power Meter, Caixa, Print O.S (se disponível)
+    - **Rompimento**: Foto do Rompimento (não tem Power Meter nem Print O.S)
+    - **Manutenções**: Foto do Local da Manutenção (não tem Power Meter nem Print O.S)
+    - Comprovação (quando finalizada)
   - Técnico de Campo e Executor
-  - PPPOE (se disponível)
-  - Prazo e Tempo Restante (para Rompimento/Manutenções)
-  - Porta(s) Placa/OLT (todas as portas listadas)
-  - Datas (Criado, Iniciado, Concluído)
+  - PPPOE (disponível apenas para O.S Normal e Manutenções - não aparece para Rompimento)
+  - Prazo e Tempo Restante (apenas para Rompimento/Manutenções)
+  - Porta(s) Placa/OLT (todas as portas listadas - pode ter múltiplas portas separadas por vírgula)
+  - Datas (Criado, Iniciado, Concluído) - todas no horário do Brasil
   - Tempos (Espera, Execução, Total)
 
 ---
@@ -76,9 +80,13 @@ Clique em **"Ordens de Serviço"** no menu para ver a lista completa.
 
 ### **Acompanhar O.S de Rompimento/Manutenções**:
 1. No Dashboard, vá até a seção **"Rompimento e Manutenções"**
-2. Veja o **Tempo Restante** em tempo real (atualiza automaticamente)
-3. O.S com prazo vencido aparecem em vermelho
-4. Clique em **"Ver Detalhes"** para ver todas as portas afetadas
+2. Veja o **Prazo** definido (ex: 4h) e o **Tempo Restante** em tempo real (atualiza automaticamente)
+3. O **Tempo Restante** nunca será maior que o **Prazo** definido
+4. O.S com prazo vencido aparecem em vermelho
+5. Clique em **"Ver Detalhes"** para ver todas as portas afetadas (pode ter múltiplas portas)
+6. **Diferenças importantes**:
+   - **Rompimento**: Não tem Power Meter, Print O.S nem PPPOE
+   - **Manutenções**: Não tem Power Meter nem Print O.S, mas tem PPPOE
 
 ### **Filtrar O.S por Status**:
 1. Vá em **"Ordens de Serviço"**
