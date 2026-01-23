@@ -198,11 +198,17 @@
             if (!prazoFim) return '-';
             
             const agora = new Date();
-            const prazo = new Date(prazoFim);
             
             // Se temos prazo_horas e criado_em, recalcular baseado nisso para evitar problemas de timezone
             if (prazoHoras && criadoEm) {
-                const criado = new Date(criadoEm);
+                // Garantir que criadoEm seja interpretado como UTC
+                let criadoStr = criadoEm;
+                if (!criadoStr.includes('Z') && !criadoStr.includes('+') && !criadoStr.includes('-', 10)) {
+                    criadoStr = criadoStr + 'Z';
+                }
+                const criado = new Date(criadoStr);
+                
+                // Calcular prazo: criadoEm (UTC) + prazoHoras
                 const prazoCalculado = new Date(criado.getTime() + (prazoHoras * 60 * 60 * 1000));
                 const diff = prazoCalculado - agora;
                 
