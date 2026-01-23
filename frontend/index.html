@@ -59,12 +59,13 @@
         console.log('Script iniciado');
         console.log('API_BASE_URL:', typeof api !== 'undefined' ? 'api.js carregado' : 'api.js NÃO carregado');
         
-        // Get API base URL for fix bot button
-        const API_BASE_URL = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
-            ? 'http://localhost:8000/api/v1'
-            : window.location.origin + '/api/v1';
+        // API_BASE_URL já está definido em api.js, não redeclarar!
+        // Usa o mesmo valor que api.js usa
+        const API_BASE_FOR_FIX = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
+            ? 'http://localhost:8000'
+            : window.location.origin;
         
-        console.log('API_BASE_URL configurado:', API_BASE_URL);
+        console.log('API_BASE_FOR_FIX configurado:', API_BASE_FOR_FIX);
         
         // Aguarda DOM carregar completamente
         document.addEventListener('DOMContentLoaded', function() {
@@ -175,7 +176,8 @@
             this.textContent = '⏳ Verificando...';
             
             try {
-                const apiBase = API_BASE_URL.replace('/api/v1', '');
+                // Usa API_BASE_FOR_FIX que não conflita com api.js
+                const apiBase = API_BASE_FOR_FIX;
                 
                 // Primeiro verifica se admin existe e pode fazer login
                 this.textContent = '⏳ Verificando admin...';
