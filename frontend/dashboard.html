@@ -228,7 +228,12 @@
                 }
             }
             
-            // Fallback: usar prazo_fim diretamente
+            // Fallback: usar prazo_fim diretamente (garantir que seja UTC)
+            let prazoStr = prazoFim;
+            if (!prazoStr.includes('Z') && !prazoStr.includes('+') && !prazoStr.includes('-', 10)) {
+                prazoStr = prazoStr + 'Z';
+            }
+            const prazo = new Date(prazoStr);
             const diff = prazo - agora;
             
             if (diff <= 0) {
