@@ -666,7 +666,7 @@ async def confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # Preparar dados baseado no tipo de O.S
             os_data = {
                 "tecnico_campo_id": TECNICO_ID_DEFAULT,
-                "foto_power_meter": context.user_data["foto_power_meter"],
+                "foto_power_meter": context.user_data.get("foto_power_meter"),  # Opcional (não existe para rompimento/manutenção)
                 "foto_caixa": context.user_data["foto_caixa"],  # Pode ser foto do rompimento/manutenção
                 "localizacao_lat": context.user_data["localizacao_lat"],
                 "localizacao_lng": context.user_data["localizacao_lng"],
