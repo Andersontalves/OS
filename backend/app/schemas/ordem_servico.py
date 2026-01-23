@@ -116,7 +116,7 @@ class OrdemServicoListItem(BaseModel):
     status: str
     tecnico_campo_nome: Optional[str] = None
     tecnico_executor_nome: Optional[str] = None
-    pppoe_cliente: str
+    pppoe_cliente: Optional[str] = None  # Opcional para rompimento
     motivo_abertura: Optional[str] = None
     cidade: Optional[str] = None
     tipo_os: str
