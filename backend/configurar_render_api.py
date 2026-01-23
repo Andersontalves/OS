@@ -6,6 +6,12 @@ via API, adicionando RENDER_API_KEY e RENDER_BOT_SERVICE_ID ao serviço os-siste
 import requests
 import sys
 import json
+import codecs
+
+# Fix encoding for Windows
+if sys.platform == 'win32':
+    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
+    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'strict')
 
 # Cores para terminal (Windows compatível)
 try:
@@ -155,33 +161,45 @@ def main():
     print("🔧 Configurador Automático - Render API")
     print("="*60 + Style.RESET_ALL + "\n")
     
-    # 1. Obter API Key
-    api_key = get_api_key()
-    if not api_key:
-        print_error("Operação cancelada.")
-        return
+    # Verificar se foi passado via linha de comando
+    if len(sys.argv) == 4:
+        api_key = sys.argv[1]
+        backend_service_id = sys.argv[2]
+        bot_service_id = sys.argv[3]
+        print_info("Usando parâmetros da linha de comando")
+    else:
+        # 1. Obter API Key
+        api_key = get_api_key()
+        if not api_key:
+            print_error("Operação cancelada.")
+            return
+        
+        # 2. Testar API Key
+        if not test_api_key(api_key):
+            print_error("Não foi possível continuar com este API Key.")
+            return
+        
+        # 3. Obter Service ID do backend (os-sistema-api)
+        backend_service_id = get_service_id(
+            "os-sistema-api (Backend)",
+            "Este é o serviço onde vamos adicionar as variáveis."
+        )
+        if not backend_service_id:
+            print_error("Operação cancelada.")
+            return
+        
+        # 4. Obter Service ID do bot (os-sistema-bot)
+        bot_service_id = get_service_id(
+            "os-sistema-bot (Bot Telegram)",
+            "Este é o serviço que será reiniciado quando o bot estiver offline."
+        )
+        if not bot_service_id:
+            print_error("Operação cancelada.")
+            return
     
-    # 2. Testar API Key
+    # Testar API Key mesmo se veio da linha de comando
     if not test_api_key(api_key):
-        print_error("Não foi possível continuar com este API Key.")
-        return
-    
-    # 3. Obter Service ID do backend (os-sistema-api)
-    backend_service_id = get_service_id(
-        "os-sistema-api (Backend)",
-        "Este é o serviço onde vamos adicionar as variáveis."
-    )
-    if not backend_service_id:
-        print_error("Operação cancelada.")
-        return
-    
-    # 4. Obter Service ID do bot (os-sistema-bot)
-    bot_service_id = get_service_id(
-        "os-sistema-bot (Bot Telegram)",
-        "Este é o serviço que será reiniciado quando o bot estiver offline."
-    )
-    if not bot_service_id:
-        print_error("Operação cancelada.")
+        print_error("API Key inválido!")
         return
     
     # 5. Obter variáveis existentes
@@ -244,11 +262,34 @@ def main():
         print_error("\nFalha ao atualizar variáveis. Verifique os erros acima.")
 
 if __name__ == "__main__":
+    if len(sys.argv) == 2 and sys.argv[1] in ["-h", "--help", "help"]:
+        print("""
+🔧 Configurador Automático - Render API
+
+Uso:
+  python configurar_render_api.py
+  python configurar_render_api.py <API_KEY> <BACKEND_SERVICE_ID> <BOT_SERVICE_ID>
+
+Exemplo:
+  python configurar_render_api.py rnd_xxxxx srv_yyyyy srv_zzzzz
+
+Parâmetros:
+  API_KEY              - API Key do Render (começa com rnd_...)
+  BACKEND_SERVICE_ID   - Service ID do os-sistema-api (começa com srv_...)
+  BOT_SERVICE_ID       - Service ID do os-sistema-bot (começa com srv_...)
+
+Se executar sem parâmetros, o script pedirá as informações interativamente.
+        """)
+        sys.exit(0)
+    
     try:
         main()
     except KeyboardInterrupt:
-        print("\n\n" + print_error("Operação cancelada pelo usuário."))
+        print("\n")
+        print_error("Operação cancelada pelo usuário.")
         sys.exit(1)
     except Exception as e:
         print_error(f"\nErro inesperado: {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
