@@ -1,16 +1,13 @@
 import os
 from dotenv import load_dotenv
 
-# Carregar .env.local se existir (para testes), senão .env normal
-# Isso permite ter um bot de teste separado sem interferir na produção
-if os.path.exists('.env.local'):
-    load_dotenv('.env.local')
-    try:
-        print("[TESTE] Usando configuracao de TESTE (.env.local)")
-    except UnicodeEncodeError:
-        print("[TESTE] Usando configuracao de TESTE (.env.local)")
-else:
-    load_dotenv()
+# Carregar .env (produção) - prioridade para produção
+# Se .env.local existir, será ignorado (usar .env de produção)
+load_dotenv('.env')
+try:
+    print("[PRODUCAO] Usando configuracao de PRODUCAO (.env)")
+except UnicodeEncodeError:
+    print("[PRODUCAO] Usando configuracao de PRODUCAO (.env)")
 
 # Telegram
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
