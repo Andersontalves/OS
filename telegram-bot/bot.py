@@ -264,7 +264,7 @@ async def receive_prazo_horas_manutencao(update: Update, context: ContextTypes.D
         return PRAZO_HORAS
 
 async def receive_porta_placa(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Recebe porta(s) da placa/OLT (pode ser múltiplas separadas por vírgula) e continua com fluxo normal (power meter)"""
+    """Recebe porta(s) da placa/OLT (pode ser múltiplas separadas por vírgula)"""
     porta = update.message.text.strip()
     context.user_data["porta_placa_olt"] = porta
     
@@ -272,24 +272,59 @@ async def receive_porta_placa(update: Update, context: ContextTypes.DEFAULT_TYPE
     portas = [p.strip() for p in porta.split(',') if p.strip()]
     num_portas = len(portas)
     
-    # Continuar com fluxo normal (power meter) - já temos localização e cidade
+    tipo_os = context.user_data.get("tipo_os", "normal")
     cancel_kb = ReplyKeyboardMarkup([[KeyboardButton("❌ Cancelar Operação")]], resize_keyboard=True)
     
-    if num_portas > 1:
-        await update.message.reply_text(
-            f"✅ *{num_portas} portas* registradas:\n{porta}\n\n"
-            "4️⃣ Agora envie a foto do *POWER METER*...",
-            parse_mode="Markdown",
-            reply_markup=cancel_kb
-        )
+    # Se for rompimento ou manutenção, pular Power Meter e pedir foto do rompimento/local direto
+    if tipo_os == "rompimento":
+        if num_portas > 1:
+            await update.message.reply_text(
+                f"✅ *{num_portas} portas* registradas:\n{porta}\n\n"
+                "4️⃣ Agora envie a foto do *ROMPIMENTO*:",
+                parse_mode="Markdown",
+                reply_markup=cancel_kb
+            )
+        else:
+            await update.message.reply_text(
+                f"✅ Porta registrada: *{porta}*\n\n"
+                "4️⃣ Agora envie a foto do *ROMPIMENTO*:",
+                parse_mode="Markdown",
+                reply_markup=cancel_kb
+            )
+        return CAIXA  # Vai direto para foto do rompimento
+    elif tipo_os == "manutencao":
+        if num_portas > 1:
+            await update.message.reply_text(
+                f"✅ *{num_portas} portas* registradas:\n{porta}\n\n"
+                "4️⃣ Agora envie a foto do *LOCAL DA MANUTENÇÃO*:",
+                parse_mode="Markdown",
+                reply_markup=cancel_kb
+            )
+        else:
+            await update.message.reply_text(
+                f"✅ Porta registrada: *{porta}*\n\n"
+                "4️⃣ Agora envie a foto do *LOCAL DA MANUTENÇÃO*:",
+                parse_mode="Markdown",
+                reply_markup=cancel_kb
+            )
+        return CAIXA  # Vai direto para foto do local da manutenção
     else:
-        await update.message.reply_text(
-            f"✅ Porta registrada: *{porta}*\n\n"
-            "4️⃣ Agora envie a foto do *POWER METER*...",
-            parse_mode="Markdown",
-            reply_markup=cancel_kb
-        )
-    return POWER_METER
+        # O.S normal: pedir Power Meter
+        if num_portas > 1:
+            await update.message.reply_text(
+                f"✅ *{num_portas} portas* registradas:\n{porta}\n\n"
+                "4️⃣ Agora envie a foto do *POWER METER*...",
+                parse_mode="Markdown",
+                reply_markup=cancel_kb
+            )
+        else:
+            await update.message.reply_text(
+                f"✅ Porta registrada: *{porta}*\n\n"
+                "4️⃣ Agora envie a foto do *POWER METER*...",
+                parse_mode="Markdown",
+                reply_markup=cancel_kb
+            )
+        return POWER_METER
 
 async def receive_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Receive and validate GPS location"""
