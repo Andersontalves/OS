@@ -244,7 +244,13 @@
         // Helper to format datetime
         function formatDateTime(dateString) {
             if (!dateString) return '-';
-            const date = new Date(dateString);
+            // Se a string não tem timezone, assumir que é UTC
+            let dateStr = dateString;
+            if (!dateStr.includes('Z') && !dateStr.includes('+') && !dateStr.includes('-', 10)) {
+                // Adicionar Z para indicar UTC
+                dateStr = dateStr + 'Z';
+            }
+            const date = new Date(dateStr);
             // Converter de UTC para timezone do Brasil (UTC-3)
             return date.toLocaleString('pt-BR', {
                 timeZone: 'America/Sao_Paulo',
