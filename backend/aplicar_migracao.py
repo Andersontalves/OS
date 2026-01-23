@@ -9,7 +9,13 @@ import psycopg2
 from psycopg2 import sql
 
 # Carregar variáveis de ambiente
-load_dotenv()
+# Tentar primeiro .env.supabase (produção), depois .env
+if os.path.exists(".env.supabase"):
+    load_dotenv(".env.supabase")
+    print("[INFO] Usando .env.supabase (producao)")
+else:
+    load_dotenv()
+    print("[INFO] Usando .env")
 
 def aplicar_migracao():
     """Aplica a migração para tornar colunas opcionais"""
@@ -18,18 +24,31 @@ def aplicar_migracao():
     database_url = os.getenv("DATABASE_URL")
     
     if not database_url:
-        print("❌ ERRO: DATABASE_URL não encontrado no arquivo .env")
-        print("   Certifique-se de que o arquivo backend/.env existe e contém DATABASE_URL")
+        print("[ERRO] DATABASE_URL nao encontrado")
+        print("   Verifique se existe:")
+        print("   - backend/.env.supabase (producao)")
+        print("   - backend/.env")
         return False
     
-    print("🔌 Conectando ao banco de dados...")
+    # Verificar se é SQLite (não suportado para migração)
+    if database_url.startswith("sqlite"):
+        print("[ERRO] O banco de dados esta configurado como SQLite")
+        print("   Esta migracao so funciona com PostgreSQL (Supabase)")
+        print()
+        print("   Para aplicar a migracao:")
+        print("   1. Configure o DATABASE_URL no backend/.env.supabase com a URL do Supabase")
+        print("   2. Formato: postgresql://postgres.xxxxx:senha@host:6543/postgres")
+        print("   3. Execute o script novamente")
+        return False
+    
+    print("[INFO] Conectando ao banco de dados Supabase...")
     
     try:
         # Conectar ao banco
         conn = psycopg2.connect(database_url)
         cursor = conn.cursor()
         
-        print("✅ Conectado ao banco de dados")
+        print("[OK] Conectado ao banco de dados")
         print()
         
         # Lista de alterações
@@ -39,12 +58,12 @@ def aplicar_migracao():
             ("pppoe_cliente", "Tornar pppoe_cliente opcional"),
         ]
         
-        print("📝 Aplicando migrações...")
+        print("[INFO] Aplicando migracoes...")
         print()
         
         for coluna, descricao in alteracoes:
             try:
-                print(f"  • {descricao}...", end=" ")
+                print(f"  - {descricao}...", end=" ")
                 
                 # Verificar se a coluna já é nullable
                 cursor.execute("""
@@ -56,28 +75,28 @@ def aplicar_migracao():
                 
                 result = cursor.fetchone()
                 if result and result[0] == 'YES':
-                    print("✅ Já é opcional")
+                    print("[OK] Ja e opcional")
                 else:
                     # Aplicar ALTER TABLE
                     query = sql.SQL("ALTER TABLE ordens_servico ALTER COLUMN {} DROP NOT NULL").format(
                         sql.Identifier(coluna)
                     )
                     cursor.execute(query)
-                    print("✅ Aplicado")
+                    print("[OK] Aplicado")
                     
             except Exception as e:
-                print(f"❌ Erro: {str(e)}")
+                print(f"[ERRO] {str(e)}")
                 conn.rollback()
                 return False
         
         # Commit das alterações
         conn.commit()
         print()
-        print("✅ Migração aplicada com sucesso!")
+        print("[OK] Migracao aplicada com sucesso!")
         print()
         
         # Verificar resultado
-        print("🔍 Verificando alterações...")
+        print("[INFO] Verificando alteracoes...")
         cursor.execute("""
             SELECT 
                 column_name, 
@@ -94,7 +113,7 @@ def aplicar_migracao():
         print("Resultado:")
         print("-" * 60)
         for coluna, nullable, tipo in resultados:
-            status = "✅ Opcional" if nullable == 'YES' else "❌ Obrigatório"
+            status = "[OK] Opcional" if nullable == 'YES' else "[ERRO] Obrigatorio"
             print(f"  {coluna:20} | {tipo:15} | {status}")
         print("-" * 60)
         
@@ -104,21 +123,21 @@ def aplicar_migracao():
         return True
         
     except psycopg2.OperationalError as e:
-        print(f"❌ ERRO de conexão: {str(e)}")
+        print(f"[ERRO] Erro de conexao: {str(e)}")
         print()
         print("Verifique:")
-        print("  1. O DATABASE_URL está correto no arquivo .env?")
-        print("  2. Você tem acesso à internet?")
-        print("  3. O Supabase está acessível?")
+        print("  1. O DATABASE_URL esta correto no arquivo .env?")
+        print("  2. Voce tem acesso a internet?")
+        print("  3. O Supabase esta acessivel?")
         return False
         
     except Exception as e:
-        print(f"❌ ERRO: {str(e)}")
+        print(f"[ERRO] {str(e)}")
         return False
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("  MIGRAÇÃO: Colunas Opcionais")
+    print("  MIGRACAO: Colunas Opcionais")
     print("=" * 60)
     print()
     
@@ -126,9 +145,9 @@ if __name__ == "__main__":
     
     if sucesso:
         print()
-        print("✅ Migração concluída com sucesso!")
-        print("   Agora você pode criar O.S de Rompimento/Manutenções")
+        print("[OK] Migracao concluida com sucesso!")
+        print("   Agora voce pode criar O.S de Rompimento/Manutencoes")
     else:
         print()
-        print("❌ Migração falhou. Verifique os erros acima.")
+        print("[ERRO] Migracao falhou. Verifique os erros acima.")
         sys.exit(1)
