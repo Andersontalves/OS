@@ -34,6 +34,17 @@ class OrdemServico(Base):
     telegram_phone = Column(String(20), nullable=True)
     cidade = Column(String(100), nullable=True)
     
+    # Tipo de O.S e prazo (para rompimento e manutenções)
+    tipo_os = Column(
+        String(20),
+        nullable=False,
+        default="normal",
+        index=True
+    )  # Valores: "normal", "rompimento", "manutencao"
+    prazo_horas = Column(Integer, nullable=True)  # Prazo em horas
+    prazo_fim = Column(DateTime, nullable=True)  # Data/hora limite calculada
+    porta_placa_olt = Column(String(50), nullable=True)  # Porta da placa/Porta da OLT
+    
     # Status e controle
     status = Column(
         String(20),
@@ -61,6 +72,10 @@ class OrdemServico(Base):
         CheckConstraint(
             "status IN ('aguardando', 'em_andamento', 'concluido')",
             name="check_status_valido"
+        ),
+        CheckConstraint(
+            "tipo_os IN ('normal', 'rompimento', 'manutencao')",
+            name="check_tipo_os_valido"
         ),
     )
     
@@ -102,3 +117,21 @@ class OrdemServico(Base):
             return None
         delta = self.concluido_em - self.criado_em
         return int(delta.total_seconds() / 60)
+    
+    @property
+    def tempo_restante_minutos(self) -> Optional[int]:
+        """Tempo restante até o prazo (apenas para rompimento/manutenção)"""
+        if not self.prazo_fim or self.tipo_os == "normal":
+            return None
+        agora = datetime.utcnow()
+        if agora > self.prazo_fim:
+            return 0  # Prazo vencido
+        delta = self.prazo_fim - agora
+        return int(delta.total_seconds() / 60)
+    
+    @property
+    def prazo_vencido(self) -> bool:
+        """Verifica se o prazo foi vencido"""
+        if not self.prazo_fim or self.tipo_os == "normal":
+            return False
+        return datetime.utcnow() > self.prazo_fim

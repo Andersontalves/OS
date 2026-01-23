@@ -88,6 +88,7 @@ class APIClient {
         const params = new URLSearchParams();
 
         if (filters.status) params.append('status_filter', filters.status);
+        if (filters.tipo_os) params.append('tipo_os', filters.tipo_os);
         if (filters.tecnico_executor_id) params.append('tecnico_executor_id', filters.tecnico_executor_id);
         if (filters.limit) params.append('limit', filters.limit);
         if (filters.offset) params.append('offset', filters.offset);
@@ -100,6 +101,15 @@ class APIClient {
         });
 
         return this.handleResponse(response);
+    }
+
+    async getOrdensRompimentoManutencao() {
+        // Buscar O.S de rompimento e manutenções
+        const [rompimento, manutencao] = await Promise.all([
+            this.getOrdensList({ tipo_os: 'rompimento', limit: 100 }),
+            this.getOrdensList({ tipo_os: 'manutencao', limit: 100 })
+        ]);
+        return [...rompimento, ...manutencao];
     }
 
     async getOrdemById(id) {

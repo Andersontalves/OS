@@ -16,22 +16,32 @@ def login(login_data: LoginRequest, db: Session = Depends(get_db)):
     - **username**: Username
     - **password**: Password
     """
-    user = authenticate_user(db, login_data.username, login_data.password)
-    
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Usuário ou senha incorretos",
-            headers={"WWW-Authenticate": "Bearer"},
+    try:
+        user = authenticate_user(db, login_data.username, login_data.password)
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Usuário ou senha incorretos",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        # Create JWT token
+        access_token = create_access_token(data={"sub": str(user.id)})
+        
+        return Token(
+            access_token=access_token,
+            user=UserResponse.model_validate(user)
         )
-    
-    # Create JWT token
-    access_token = create_access_token(data={"sub": str(user.id)})
-    
-    return Token(
-        access_token=access_token,
-        user=UserResponse.model_validate(user)
-    )
+    except HTTPException:
+        # Re-raise HTTP exceptions (like 401)
+        raise
+    except Exception as e:
+        # Catch database connection errors and other exceptions
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Erro ao conectar ao banco de dados. Verifique sua conexão com a internet. Detalhes: {str(e)}"
+        )
 
 
 @router.get("/me", response_model=UserResponse)

@@ -66,6 +66,12 @@ def create_os(
     # Generate OS number
     numero_os = _generate_numero_os(db)
     
+    # Calcular prazo_fim se não fornecido
+    prazo_fim = os_data.prazo_fim
+    if os_data.tipo_os in ["rompimento", "manutencao"] and os_data.prazo_horas and not prazo_fim:
+        from datetime import timedelta
+        prazo_fim = datetime.utcnow() + timedelta(hours=os_data.prazo_horas)
+    
     # Create OS
     new_os = OrdemServico(
         numero_os=numero_os,
@@ -81,6 +87,10 @@ def create_os(
         telegram_nick=os_data.telegram_nick,
         telegram_phone=os_data.telegram_phone,
         cidade=os_data.cidade,
+        tipo_os=os_data.tipo_os or "normal",
+        prazo_horas=os_data.prazo_horas,
+        prazo_fim=prazo_fim,
+        porta_placa_olt=os_data.porta_placa_olt,
         status="aguardando"
     )
     
@@ -93,6 +103,7 @@ def create_os(
 
 @router.get("", response_model=List[OrdemServicoListItem])
 def list_os(
+    tipo_os: Optional[str] = Query(None, description="Filtrar por tipo: normal, rompimento, manutencao"),
     status_filter: Optional[str] = Query(None, description="Filtrar por status"),
     tecnico_executor_id: Optional[int] = Query(None, description="Filtrar por técnico executor"),
     limit: int = Query(50, le=200),
@@ -116,6 +127,10 @@ def list_os(
     
     if tecnico_executor_id:
         query = query.filter(OrdemServico.tecnico_executor_id == tecnico_executor_id)
+    
+    # Filter by tipo_os if provided
+    if tipo_os:
+        query = query.filter(OrdemServico.tipo_os == tipo_os)
     
     # Role-based filtering
     if current_user.role == "execucao":
@@ -144,7 +159,11 @@ def list_os(
             criado_em=os.criado_em,
             pppoe_cliente=os.pppoe_cliente,
             motivo_abertura=os.motivo_abertura,
-            cidade=os.cidade
+            cidade=os.cidade,
+            tipo_os=getattr(os, 'tipo_os', 'normal'),
+            prazo_horas=getattr(os, 'prazo_horas', None),
+            prazo_fim=getattr(os, 'prazo_fim', None),
+            porta_placa_olt=getattr(os, 'porta_placa_olt', None)
         )
         for os in results
     ]
@@ -422,5 +441,11 @@ def _format_os_response(os: OrdemServico) -> OrdemServicoResponse:
         tempo_espera_min=int(os.tempo_espera_minutos) if os.tempo_espera_minutos is not None else None,
         tempo_execucao_min=int(os.tempo_execucao_minutos) if os.tempo_execucao_minutos is not None else None,
         tempo_total_min=int(os.tempo_total_minutos) if os.tempo_total_minutos is not None else None,
-        cidade=os.cidade
+        cidade=os.cidade,
+        tipo_os=getattr(os, 'tipo_os', 'normal'),
+        prazo_horas=getattr(os, 'prazo_horas', None),
+        prazo_fim=getattr(os, 'prazo_fim', None),
+        porta_placa_olt=getattr(os, 'porta_placa_olt', None),
+        tempo_restante_min=int(os.tempo_restante_minutos) if hasattr(os, 'tempo_restante_minutos') and os.tempo_restante_minutos is not None else None,
+        prazo_vencido=getattr(os, 'prazo_vencido', False) if hasattr(os, 'prazo_vencido') else False
     )

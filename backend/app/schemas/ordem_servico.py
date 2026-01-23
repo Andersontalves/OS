@@ -24,6 +24,10 @@ class OrdemServicoCreate(BaseModel):
     telegram_nick: Optional[str] = None
     telegram_phone: Optional[str] = None
     cidade: Optional[str] = None
+    tipo_os: Optional[str] = "normal"  # "normal", "rompimento", "manutencao"
+    prazo_horas: Optional[int] = None  # Apenas para rompimento/manutenção
+    prazo_fim: Optional[datetime] = None  # Calculado no backend se não fornecido
+    porta_placa_olt: Optional[str] = None  # Para rompimento e manutenções
 
 
 class OrdemServicoUpdate(BaseModel):
@@ -84,6 +88,14 @@ class OrdemServicoResponse(BaseModel):
     iniciado_em: Optional[datetime] = None
     concluido_em: Optional[datetime] = None
     
+    # Tipo e prazo
+    tipo_os: str
+    prazo_horas: Optional[int] = None
+    prazo_fim: Optional[datetime] = None
+    porta_placa_olt: Optional[str] = None
+    tempo_restante_min: Optional[int] = None
+    prazo_vencido: bool = False
+    
     # Computed metrics
     tempo_espera_min: Optional[int] = None
     tempo_execucao_min: Optional[int] = None
@@ -107,6 +119,10 @@ class OrdemServicoListItem(BaseModel):
     pppoe_cliente: str
     motivo_abertura: Optional[str] = None
     cidade: Optional[str] = None
+    tipo_os: str
+    prazo_horas: Optional[int] = None
+    prazo_fim: Optional[datetime] = None
+    porta_placa_olt: Optional[str] = None
     criado_em: datetime
 
     class Config:

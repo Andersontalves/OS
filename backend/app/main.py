@@ -31,42 +31,56 @@ bot_heartbeat_lock = False
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Atualiza o schema (Migrações manuais simples)
-    with engine.begin() as conn:
-        try:
-            # SQL Standard compatibility
-            conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN IF NOT EXISTS motivo_abertura VARCHAR;"))
-            conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN IF NOT EXISTS telegram_nick VARCHAR;"))
-            conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN IF NOT EXISTS telegram_phone VARCHAR;"))
-            conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN IF NOT EXISTS cidade VARCHAR;"))
-            print("✅ Schema atualizado com sucesso!")
-        except Exception as e:
-            print(f"⚠️ Aviso ao atualizar schema: {e}")
-            # Tentativa secundária sem IF NOT EXISTS para alguns sabores de DB
+    try:
+        with engine.begin() as conn:
             try:
-                conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN motivo_abertura VARCHAR;"))
-                conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN telegram_nick VARCHAR;"))
-                conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN telegram_phone VARCHAR;"))
-                conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN cidade VARCHAR;"))
-            except:
-                pass
+                # SQL Standard compatibility
+                conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN IF NOT EXISTS motivo_abertura VARCHAR;"))
+                conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN IF NOT EXISTS telegram_nick VARCHAR;"))
+                conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN IF NOT EXISTS telegram_phone VARCHAR;"))
+                conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN IF NOT EXISTS cidade VARCHAR;"))
+                # Novos campos para Rompimento/Manutenções
+                conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN IF NOT EXISTS tipo_os VARCHAR(20) DEFAULT 'normal';"))
+                conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN IF NOT EXISTS prazo_horas INTEGER;"))
+                conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN IF NOT EXISTS prazo_fim TIMESTAMP;"))
+                conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN IF NOT EXISTS porta_placa_olt VARCHAR(50);"))
+                print("[OK] Schema atualizado com sucesso!")
+            except Exception as e:
+                print(f"[AVISO] Aviso ao atualizar schema: {e}")
+                # Tentativa secundária sem IF NOT EXISTS para alguns sabores de DB
+                try:
+                    conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN motivo_abertura VARCHAR;"))
+                    conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN telegram_nick VARCHAR;"))
+                    conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN telegram_phone VARCHAR;"))
+                    conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN cidade VARCHAR;"))
+                    conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN tipo_os VARCHAR(20) DEFAULT 'normal';"))
+                    conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN prazo_horas INTEGER;"))
+                    conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN prazo_fim TIMESTAMP;"))
+                    conn.execute(text("ALTER TABLE ordens_servico ADD COLUMN porta_placa_olt VARCHAR(50);"))
+                except:
+                    pass
+    except Exception as db_error:
+        print(f"[AVISO] Nao foi possivel conectar ao banco durante startup: {db_error}")
+        print("[AVISO] O servidor vai iniciar, mas algumas funcionalidades podem nao funcionar.")
+        print("[AVISO] Verifique sua conexao com a internet e o DATABASE_URL no .env")
     
     # Cria tabelas se não existirem
     try:
         Base.metadata.create_all(bind=engine)
-        print("✅ Tabelas verificadas/criadas!")
+        print("[OK] Tabelas verificadas/criadas!")
     except Exception as e:
-        print(f"⚠️ Aviso ao criar tabelas: {e}")
+        print(f"[AVISO] Aviso ao criar tabelas: {e}")
     
     # Garante que usuários padrão existem
     db = SessionLocal()
     try:
         user_count = db.query(User).count()
-        print(f"📊 Usuários no banco: {user_count}")
+        print(f"[INFO] Usuarios no banco: {user_count}")
         
         # Verifica se admin existe especificamente
         admin = db.query(User).filter(User.username == "admin").first()
         if not admin:
-            print("🆕 Criando usuário admin...")
+            print("[INFO] Criando usuario admin...")
             admin_user = User(
                 username="admin",
                 password_hash=hash_password("admin123"),
@@ -75,22 +89,22 @@ async def lifespan(app: FastAPI):
             )
             db.add(admin_user)
             db.commit()
-            print("✅ Usuário admin criado com sucesso!")
+            print("[OK] Usuario admin criado com sucesso!")
         else:
-            print(f"✅ Usuário admin já existe (ID: {admin.id})")
+            print(f"[OK] Usuario admin ja existe (ID: {admin.id})")
         
         # Se não há usuários, cria os padrão
         if user_count == 0:
-            print("🆕 Criando usuários padrão...")
+            print("[INFO] Criando usuarios padrao...")
             users = [
                 User(username="monitor", password_hash=hash_password("monitor123"), role="monitoramento", nome="Monitor de Operações"),
                 User(username="tecnico1", password_hash=hash_password("tecnico123"), role="execucao", nome="Técnico Executor 1")
             ]
             db.add_all(users)
             db.commit()
-            print("✅ Usuários padrão criados com sucesso!")
+            print("[OK] Usuarios padrao criados com sucesso!")
     except Exception as e:
-        print(f"❌ Erro ao inicializar banco: {e}")
+        print(f"[ERRO] Erro ao inicializar banco: {e}")
         import traceback
         traceback.print_exc()
     finally:
@@ -118,9 +132,10 @@ app.add_middleware(
 )
 
 # Define API endpoints BEFORE mounting frontend (order matters!)
-@app.get("/", status_code=status.HTTP_200_OK)
-def root():
-    """Root endpoint - API health check"""
+# Note: Root endpoint "/" is handled by StaticFiles to serve index.html
+@app.get("/api/status", status_code=status.HTTP_200_OK)
+def api_status():
+    """API health check endpoint"""
     return {
         "message": "Sistema de Ordens de Serviço API",
         "version": "1.0.0",
@@ -470,11 +485,17 @@ app.include_router(relatorios.router, prefix="/api/v1")
 app.include_router(usuarios.router, prefix="/api/v1")
 
 # Serve Static Files (Frontend) - MUST be last to not catch API routes
-frontend_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "frontend")
+# Calculate absolute path to frontend directory
+_current_file = os.path.abspath(__file__)  # backend/app/main.py (absolute)
+_backend_dir = os.path.dirname(os.path.dirname(_current_file))  # backend/ (absolute)
+_project_root = os.path.dirname(_backend_dir)  # project root (absolute)
+frontend_path = os.path.join(_project_root, "frontend")
+
 if os.path.exists(frontend_path):
     app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
+    print(f"[OK] Frontend servido de: {frontend_path}")
 else:
-    print(f"Warning: Frontend directory not found at {frontend_path}")
+    print(f"[ERRO] Diretorio frontend nao encontrado em: {frontend_path}")
 
 
 # Global exception handler

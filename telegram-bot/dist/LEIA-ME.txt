@@ -1,0 +1,57 @@
+=====================================
+  Bot Telegram - Sistema O.S
+=====================================
+
+COMO USAR
+---------
+
+1. Configure o arquivo .env com seus dados (JA ESTA CONFIGURADO!)
+
+2. Clique duas vezes em "Iniciar_Bot.bat"
+
+3. A janela do bot vai abrir automaticamente
+
+4. Use os botoes:
+   - Iniciar: Liga o bot
+   - Parar: Desliga o bot
+   - Reiniciar: Reinicia o bot (use quando travar)
+   - Limpar Logs: Limpa a area de logs
+
+
+IMPORTANTE
+----------
+
+- Use APENAS o arquivo "Iniciar_Bot.bat"
+- NAO use o arquivo .exe (pode nao funcionar)
+- Mantenha a janela aberta para o bot funcionar
+- Se travar, clique em "Reiniciar"
+
+
+ARQUITETURA
+-----------
+
+Bot (seu PC) --> API (Render) --> Banco de Dados (Supabase)
+     |
+     v
+  Telegram
+  (usuarios)
+
+- Bot: roda no seu computador
+- API/Site: roda no Render (sempre online)
+- Banco: Supabase (gratuito, nao para)
+
+
+PROBLEMAS COMUNS
+----------------
+
+"Python nao encontrado":
+  - Instale Python: python.org/downloads
+  - Marque "Add to PATH" durante a instalacao
+
+"Bot nao conecta":
+  - Verifique se o token do Telegram esta correto
+  - Verifique sua conexao com a internet
+
+"Erro de autenticacao":
+  - A API pode estar hibernada
+  - Aguarde 1-2 minutos e tente novamente

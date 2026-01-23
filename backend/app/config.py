@@ -37,3 +37,7 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     """Get cached settings instance"""
     return Settings()
+
+def clear_settings_cache():
+    """Clear settings cache to force reload"""
+    get_settings.cache_clear()

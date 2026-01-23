@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from .config import get_settings
@@ -43,8 +43,20 @@ def get_db():
         def read_items(db: Session = Depends(get_db)):
             ...
     """
-    db = SessionLocal()
+    db = None
     try:
+        db = SessionLocal()
+        # Test connection
+        db.execute(text("SELECT 1"))
         yield db
+    except Exception as e:
+        if db:
+            db.close()
+        from fastapi import HTTPException, status
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Erro ao conectar ao banco de dados: {str(e)}. Verifique sua conexão com a internet e o DATABASE_URL."
+        )
     finally:
-        db.close()
+        if db:
+            db.close()

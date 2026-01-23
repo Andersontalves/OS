@@ -162,6 +162,7 @@
                             <tr>
                                 <th>Número O.S</th>
                                 <th>Status</th>
+                                <th>Cidade</th>
                                 <th>Técnico Campo</th>
                                 <th>Técnico Executor</th>
                                 <th>PPPOE</th>
@@ -174,6 +175,7 @@
                                 <tr>
                                     <td><strong>${os.numero_os}</strong></td>
                                     <td><span class="badge badge-${os.status}">${getStatusLabel(os.status)}</span></td>
+                                    <td>${os.cidade || '-'}</td>
                                     <td>${os.tecnico_campo_nome || 'N/A'}</td>
                                     <td>${os.tecnico_executor_nome || '-'}</td>
                                     <td>${os.pppoe_cliente}</td>
