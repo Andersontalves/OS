@@ -171,145 +171,145 @@
             // Fix Bot Button - Destrava o bot e verifica status
             if (fixBotBtn) {
                 fixBotBtn.addEventListener('click', async function() {
-            const originalText = this.textContent;
-            this.disabled = true;
-            this.textContent = '⏳ Verificando...';
+                    const originalText = this.textContent;
+                    this.disabled = true;
+                    this.textContent = '⏳ Verificando...';
             
-            try {
-                // Usa API_BASE_FOR_FIX que não conflita com api.js
-                const apiBase = API_BASE_FOR_FIX;
-                
-                // Primeiro verifica se admin existe e pode fazer login
-                this.textContent = '⏳ Verificando admin...';
-                const checkAdminResponse = await fetch(`${apiBase}/check-admin`);
-                const adminCheck = await checkAdminResponse.json();
-                
-                if (!adminCheck.admin_exists || !adminCheck.can_login) {
-                    // Tenta criar/recriar admin
-                    this.textContent = '⏳ Criando admin...';
-                    const initResponse = await fetch(`${apiBase}/init-admin`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' }
-                    });
-                    const initData = await initResponse.json();
-                    
-                    if (initData.status === 'created') {
+                    try {
+                        // Usa API_BASE_FOR_FIX que não conflita com api.js
+                        const apiBase = API_BASE_FOR_FIX;
+                        
+                        // Primeiro verifica se admin existe e pode fazer login
+                        this.textContent = '⏳ Verificando admin...';
+                        const checkAdminResponse = await fetch(`${apiBase}/check-admin`);
+                        const adminCheck = await checkAdminResponse.json();
+                        
+                        if (!adminCheck.admin_exists || !adminCheck.can_login) {
+                            // Tenta criar/recriar admin
+                            this.textContent = '⏳ Criando admin...';
+                            const initResponse = await fetch(`${apiBase}/init-admin`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' }
+                            });
+                            const initData = await initResponse.json();
+                            
+                            if (initData.status === 'created') {
+                                showAlert(
+                                    `✅ Usuário admin criado!<br>` +
+                                    `<small>Username: ${initData.username} | Senha: ${initData.password}</small><br>` +
+                                    `<small>Agora você pode fazer login.</small>`, 
+                                    'success'
+                                );
+                                this.disabled = false;
+                                this.textContent = originalText;
+                                return;
+                            } else if (initData.status === 'error') {
+                                showAlert(
+                                    `❌ Erro ao criar admin: ${initData.message}`, 
+                                    'error'
+                                );
+                                this.disabled = false;
+                                this.textContent = originalText;
+                                return;
+                            }
+                        }
+                        
+                        // Verifica status do bot
+                        this.textContent = '⏳ Verificando bot...';
+                        const statusResponse = await fetch(`${apiBase}/bot-status`);
+                        const botStatus = await statusResponse.json();
+                        
+                        // Se bot está offline, mostra aviso
+                        if (!botStatus.bot_online) {
+                            this.textContent = '⏳ Bot offline, tentando acordar...';
+                            showAlert(
+                                `⚠️ Bot está offline há ${botStatus.time_since_last_minutes || 0} minutos.<br>` +
+                                `<small>Tentando acordar o bot...</small>`, 
+                                'error'
+                            );
+                        }
+                        
+                        // Agora tenta destravar
+                        this.textContent = '⏳ Destravando bot...';
+                        const response = await fetch(`${apiBase}/fix-bot`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' }
+                        });
+                        
+                        const data = await response.json();
+                        
+                        // Monta mensagem detalhada
+                        let details = [];
+                        if (data.api_status === 'online') details.push('API online');
+                        if (data.database_status === 'connected') details.push('Banco conectado');
+                        if (data.admin_status === 'created') {
+                            details.push('Admin criado');
+                        } else if (data.admin_status === 'exists') {
+                            details.push('Admin existe');
+                        }
+                        
+                        // Adiciona info do admin check
+                        if (adminCheck.admin_exists) {
+                            details.push(`Admin: ${adminCheck.can_login ? 'OK' : 'ERRO'}`);
+                        }
+                        
+                        // Status do bot
+                        let botStatusMsg = '';
+                        if (data.bot_online) {
+                            botStatusMsg = '🤖 Bot ONLINE';
+                            if (data.last_heartbeat) {
+                                botStatusMsg += ` (último heartbeat: ${data.time_since_last_minutes || 0}min atrás)`;
+                            }
+                        } else {
+                            botStatusMsg = '🤖 Bot OFFLINE';
+                            if (data.time_since_last_minutes) {
+                                botStatusMsg += ` (há ${data.time_since_last_minutes} minutos)`;
+                            }
+                            if (data.bot_wake_attempt) {
+                                botStatusMsg += ' - Tentando acordar...';
+                            }
+                        }
+                        details.push(botStatusMsg);
+                        
+                        // Warnings
+                        let warningsHtml = '';
+                        if (data.warnings && data.warnings.length > 0) {
+                            warningsHtml = '<br><small style="color: orange;">' + data.warnings.join('<br>') + '</small>';
+                        }
+                        
+                        // Tempo de resposta
+                        if (data.elapsed_seconds > 180) {
+                            warningsHtml += `<br><small style="color: orange;">⚠️ Operação demorou ${Math.floor(data.elapsed_seconds/60)} minutos. Bot pode estar lento.</small>`;
+                        }
+                        
+                        if (data.bot_should_work && data.bot_online) {
+                            showAlert(
+                                `✅ ${data.message}<br><small>${details.join(' • ')}</small>${warningsHtml}`, 
+                                'success'
+                            );
+                        } else if (data.bot_should_work && !data.bot_online) {
+                            showAlert(
+                                `⚠️ ${data.message}<br><small>${details.join(' • ')}</small><br>` +
+                                `<small style="color: orange;">O bot pode demorar até 3 minutos para responder. Aguarde e tente novamente.</small>${warningsHtml}`, 
+                                'error'
+                            );
+                        } else {
+                            showAlert(
+                                `⚠️ ${data.message || 'Erro ao destravar bot'}<br>` +
+                                `<small>${details.join(' • ')}</small>${warningsHtml}`, 
+                                'error'
+                            );
+                        }
+                    } catch (error) {
                         showAlert(
-                            `✅ Usuário admin criado!<br>` +
-                            `<small>Username: ${initData.username} | Senha: ${initData.password}</small><br>` +
-                            `<small>Agora você pode fazer login.</small>`, 
-                            'success'
-                        );
-                        this.disabled = false;
-                        this.textContent = originalText;
-                        return;
-                    } else if (initData.status === 'error') {
-                        showAlert(
-                            `❌ Erro ao criar admin: ${initData.message}`, 
+                            `❌ Erro ao conectar com a API: ${error.message}<br>` +
+                            `<small>Verifique se a API está online</small>`, 
                             'error'
                         );
+                    } finally {
                         this.disabled = false;
                         this.textContent = originalText;
-                        return;
                     }
-                }
-                
-                // Verifica status do bot
-                this.textContent = '⏳ Verificando bot...';
-                const statusResponse = await fetch(`${apiBase}/bot-status`);
-                const botStatus = await statusResponse.json();
-                
-                // Se bot está offline, mostra aviso
-                if (!botStatus.bot_online) {
-                    this.textContent = '⏳ Bot offline, tentando acordar...';
-                    showAlert(
-                        `⚠️ Bot está offline há ${botStatus.time_since_last_minutes || 0} minutos.<br>` +
-                        `<small>Tentando acordar o bot...</small>`, 
-                        'error'
-                    );
-                }
-                
-                // Agora tenta destravar
-                this.textContent = '⏳ Destravando bot...';
-                const response = await fetch(`${apiBase}/fix-bot`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-                
-                const data = await response.json();
-                
-                // Monta mensagem detalhada
-                let details = [];
-                if (data.api_status === 'online') details.push('API online');
-                if (data.database_status === 'connected') details.push('Banco conectado');
-                if (data.admin_status === 'created') {
-                    details.push('Admin criado');
-                } else if (data.admin_status === 'exists') {
-                    details.push('Admin existe');
-                }
-                
-                // Adiciona info do admin check
-                if (adminCheck.admin_exists) {
-                    details.push(`Admin: ${adminCheck.can_login ? 'OK' : 'ERRO'}`);
-                }
-                
-                // Status do bot
-                let botStatusMsg = '';
-                if (data.bot_online) {
-                    botStatusMsg = '🤖 Bot ONLINE';
-                    if (data.last_heartbeat) {
-                        botStatusMsg += ` (último heartbeat: ${data.time_since_last_minutes || 0}min atrás)`;
-                    }
-                } else {
-                    botStatusMsg = '🤖 Bot OFFLINE';
-                    if (data.time_since_last_minutes) {
-                        botStatusMsg += ` (há ${data.time_since_last_minutes} minutos)`;
-                    }
-                    if (data.bot_wake_attempt) {
-                        botStatusMsg += ' - Tentando acordar...';
-                    }
-                }
-                details.push(botStatusMsg);
-                
-                // Warnings
-                let warningsHtml = '';
-                if (data.warnings && data.warnings.length > 0) {
-                    warningsHtml = '<br><small style="color: orange;">' + data.warnings.join('<br>') + '</small>';
-                }
-                
-                // Tempo de resposta
-                if (data.elapsed_seconds > 180) {
-                    warningsHtml += `<br><small style="color: orange;">⚠️ Operação demorou ${Math.floor(data.elapsed_seconds/60)} minutos. Bot pode estar lento.</small>`;
-                }
-                
-                if (data.bot_should_work && data.bot_online) {
-                    showAlert(
-                        `✅ ${data.message}<br><small>${details.join(' • ')}</small>${warningsHtml}`, 
-                        'success'
-                    );
-                } else if (data.bot_should_work && !data.bot_online) {
-                    showAlert(
-                        `⚠️ ${data.message}<br><small>${details.join(' • ')}</small><br>` +
-                        `<small style="color: orange;">O bot pode demorar até 3 minutos para responder. Aguarde e tente novamente.</small>${warningsHtml}`, 
-                        'error'
-                    );
-                } else {
-                    showAlert(
-                        `⚠️ ${data.message || 'Erro ao destravar bot'}<br>` +
-                        `<small>${details.join(' • ')}</small>${warningsHtml}`, 
-                        'error'
-                    );
-                }
-            } catch (error) {
-                showAlert(
-                    `❌ Erro ao conectar com a API: ${error.message}<br>` +
-                    `<small>Verifique se a API está online</small>`, 
-                    'error'
-                );
-            } finally {
-                    this.disabled = false;
-                    this.textContent = originalText;
-                }
                 });
                 console.log('Event listener do fix-bot adicionado');
             } else {

@@ -344,9 +344,6 @@ def debug_info():
 @app.post("/fix-bot", status_code=status.HTTP_200_OK)
 def fix_bot():
     """Endpoint para destravar o bot - verifica tudo e tenta acordar o bot se necessário"""
-    import asyncio
-    from concurrent.futures import ThreadPoolExecutor
-    
     db = SessionLocal()
     results = {
         "api_status": "ok",
