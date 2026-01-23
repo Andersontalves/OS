@@ -90,6 +90,7 @@ class APIClient {
         if (filters.status) params.append('status_filter', filters.status);
         if (filters.tipo_os) params.append('tipo_os', filters.tipo_os);
         if (filters.tecnico_executor_id) params.append('tecnico_executor_id', filters.tecnico_executor_id);
+        if (filters.search) params.append('search', filters.search);
         if (filters.limit) params.append('limit', filters.limit);
         if (filters.offset) params.append('offset', filters.offset);
 

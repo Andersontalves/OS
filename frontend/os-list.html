@@ -47,6 +47,10 @@
                         <option value="concluido">Concluído</option>
                     </select>
                 </div>
+                <div class="form-group">
+                    <label for="search-input">Buscar</label>
+                    <input type="text" id="search-input" placeholder="Buscar em todas as colunas..." />
+                </div>
                 <div class="form-group" style="display: flex; align-items: flex-end;">
                     <button class="btn btn-primary" id="apply-filters-btn" style="width: 100%;">Aplicar Filtros</button>
                 </div>
@@ -115,29 +119,62 @@
         });
 
         let currentOSList = [];
+        let currentPage = 1;
+        const itemsPerPage = 20;
 
         // Load OS list
-        async function loadOSList() {
+        async function loadOSList(page = 1) {
+            currentPage = page;
             const statusFilter = document.getElementById('filter-status').value;
+            const searchTerm = document.getElementById('search-input').value.trim();
 
             document.getElementById('loading').classList.remove('hidden');
             document.getElementById('os-list-container').classList.add('hidden');
             document.getElementById('empty-state').classList.add('hidden');
 
             try {
-                const filters = {};
+                const filters = {
+                    limit: itemsPerPage,
+                    offset: (page - 1) * itemsPerPage
+                };
+                
                 if (statusFilter) filters.status = statusFilter;
+                if (searchTerm) filters.search = searchTerm;
 
                 const osList = await api.getOrdensList(filters);
                 currentOSList = osList;
 
-                if (osList.length === 0) {
+                // Calcular total de páginas
+                // Se retornou menos que itemsPerPage, é a última página
+                let totalPages = page;
+                if (osList.length === itemsPerPage) {
+                    // Pode haver mais páginas, verificar próxima página
+                    const nextPageFilters = {
+                        ...filters,
+                        offset: page * itemsPerPage,
+                        limit: 1
+                    };
+                    try {
+                        const nextPageResults = await api.getOrdensList(nextPageFilters);
+                        totalPages = nextPageResults.length > 0 ? page + 1 : page;
+                    } catch (e) {
+                        // Se der erro, assumir que é a última página
+                        totalPages = page;
+                    }
+                }
+
+                if (osList.length === 0 && page === 1) {
                     document.getElementById('loading').classList.add('hidden');
                     document.getElementById('empty-state').classList.remove('hidden');
                     return;
                 }
 
-                renderOSList(osList);
+                // Se não há resultados mas não é a primeira página, voltar para página 1
+                if (osList.length === 0 && page > 1) {
+                    return loadOSList(1);
+                }
+
+                renderOSList(osList, page, totalPages);
 
                 document.getElementById('loading').classList.add('hidden');
                 document.getElementById('os-list-container').classList.remove('hidden');
@@ -152,7 +189,7 @@
             }
         }
 
-        function renderOSList(osList) {
+        function renderOSList(osList, currentPage = 1, totalPages = 1) {
             const container = document.getElementById('os-list-container');
 
             container.innerHTML = `
@@ -178,7 +215,7 @@
                                     <td>${os.cidade || '-'}</td>
                                     <td>${os.tecnico_campo_nome || 'N/A'}</td>
                                     <td>${os.tecnico_executor_nome || '-'}</td>
-                                    <td>${os.pppoe_cliente}</td>
+                                    <td>${os.pppoe_cliente || '-'}</td>
                                     <td>${formatDateTime(os.criado_em)}</td>
                                     <td>
                                         <button class="btn btn-sm btn-primary" onclick="openOSDetails(${os.id})">Ver Detalhes</button>
@@ -188,7 +225,42 @@
                         </tbody>
                     </table>
                 </div>
+                ${totalPages > 1 ? `
+                <div class="pagination" style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 1.5rem; padding: 1rem;">
+                    <button class="btn btn-secondary" id="prev-page-btn" ${currentPage === 1 ? 'disabled' : ''} style="min-width: 100px;">
+                        ← Anterior
+                    </button>
+                    <span style="color: var(--text-primary); font-weight: 500;">
+                        Página ${currentPage} de ${totalPages}
+                    </span>
+                    <button class="btn btn-secondary" id="next-page-btn" ${currentPage === totalPages ? 'disabled' : ''} style="min-width: 100px;">
+                        Próxima →
+                    </button>
+                </div>
+                ` : ''}
             `;
+
+            // Adicionar event listeners para paginação
+            if (totalPages > 1) {
+                const prevBtn = document.getElementById('prev-page-btn');
+                const nextBtn = document.getElementById('next-page-btn');
+                
+                if (prevBtn) {
+                    prevBtn.addEventListener('click', () => {
+                        if (currentPage > 1) {
+                            loadOSList(currentPage - 1);
+                        }
+                    });
+                }
+                
+                if (nextBtn) {
+                    nextBtn.addEventListener('click', () => {
+                        if (currentPage < totalPages) {
+                            loadOSList(currentPage + 1);
+                        }
+                    });
+                }
+            }
         }
 
         async function openOSDetails(osId) {
@@ -336,7 +408,7 @@
                 await api.assumirOrdem(osId, user.id);
                 alert('O.S assumida com sucesso!');
                 closeModal();
-                loadOSList();
+                loadOSList(currentPage);
             } catch (error) {
                 alert(`Erro ao assumir O.S: ${error.message}`);
             }
@@ -399,7 +471,7 @@
                 await api.finalizarOrdemComFoto(osId, fotoFile, observacoes);
                 alert('O.S finalizada com sucesso!');
                 closeModal();
-                loadOSList();
+                loadOSList(currentPage);
             } catch (error) {
                 alert(`Erro ao finalizar O.S: ${error.message}`);
                 // Restore button
@@ -418,7 +490,7 @@
                 await api.deleteOrdem(osId);
                 alert('O.S excluída com sucesso!');
                 closeModal();
-                loadOSList();
+                loadOSList(currentPage);
             } catch (error) {
                 alert(`Erro ao excluir O.S: ${error.message}`);
             }
@@ -472,12 +544,19 @@
         }
 
         // Event listeners
-        document.getElementById('refresh-btn').addEventListener('click', loadOSList);
-        document.getElementById('apply-filters-btn').addEventListener('click', loadOSList);
+        document.getElementById('refresh-btn').addEventListener('click', () => loadOSList(1));
+        document.getElementById('apply-filters-btn').addEventListener('click', () => loadOSList(1));
         document.getElementById('close-modal-btn').addEventListener('click', closeModal);
 
+        // Busca ao pressionar Enter
+        document.getElementById('search-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                loadOSList(1);
+            }
+        });
+
         // Load on page load
-        loadOSList();
+        loadOSList(1);
     </script>
 </body>
 

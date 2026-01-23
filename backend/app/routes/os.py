@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, File, UploadFile, Form
-from sqlalchemy.orm import Session
-from sqlalchemy import func, desc
+from sqlalchemy.orm import Session, aliased
+from sqlalchemy import func, desc, or_
 from typing import List, Optional
 from datetime import datetime
 from ..database import get_db
@@ -106,7 +106,8 @@ def list_os(
     tipo_os: Optional[str] = Query(None, description="Filtrar por tipo: normal, rompimento, manutencao"),
     status_filter: Optional[str] = Query(None, description="Filtrar por status"),
     tecnico_executor_id: Optional[int] = Query(None, description="Filtrar por técnico executor"),
-    limit: int = Query(50, le=200),
+    search: Optional[str] = Query(None, description="Buscar em todas as colunas"),
+    limit: int = Query(20, le=200),
     offset: int = 0,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -116,9 +117,12 @@ def list_os(
     
     - **status_filter**: Filter by status (aguardando, em_andamento, concluido)
     - **tecnico_executor_id**: Filter by executor technician
-    - **limit**: Maximum number of results (max 200)
+    - **search**: Search in numero_os, cidade, pppoe_cliente, motivo_abertura, tecnico names
+    - **limit**: Maximum number of results (max 200, default 20)
     - **offset**: Pagination offset
     """
+    from sqlalchemy import or_
+    
     query = db.query(OrdemServico)
     
     # Apply filters
@@ -131,6 +135,29 @@ def list_os(
     # Filter by tipo_os if provided
     if tipo_os:
         query = query.filter(OrdemServico.tipo_os == tipo_os)
+    
+    # Search filter - busca em múltiplas colunas
+    if search:
+        search_term = f"%{search}%"
+        # Criar aliases para os joins de User
+        tecnico_campo_alias = aliased(User)
+        tecnico_executor_alias = aliased(User)
+        
+        query = query.outerjoin(tecnico_campo_alias, OrdemServico.tecnico_campo_id == tecnico_campo_alias.id).outerjoin(
+            tecnico_executor_alias, OrdemServico.tecnico_executor_id == tecnico_executor_alias.id
+        ).filter(
+            or_(
+                OrdemServico.numero_os.ilike(search_term),
+                OrdemServico.cidade.ilike(search_term),
+                OrdemServico.pppoe_cliente.ilike(search_term),
+                OrdemServico.motivo_abertura.ilike(search_term),
+                OrdemServico.porta_placa_olt.ilike(search_term),
+                tecnico_campo_alias.username.ilike(search_term),
+                tecnico_campo_alias.nome.ilike(search_term),
+                tecnico_executor_alias.username.ilike(search_term),
+                tecnico_executor_alias.nome.ilike(search_term)
+            )
+        ).distinct()
     
     # Role-based filtering
     if current_user.role == "execucao":
