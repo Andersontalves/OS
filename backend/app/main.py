@@ -388,20 +388,44 @@ def fix_bot():
         results["last_heartbeat"] = bot_status_info.get("last_heartbeat")
         results["time_since_last_minutes"] = bot_status_info.get("time_since_last_minutes", 0)
         
-        # 4. Se bot está offline, tenta acordar
+        # 4. Se bot está offline, tenta reiniciar via Render API
         if not bot_status_info["bot_online"]:
             results["bot_wake_attempt"] = True
             results["warnings"].append(f"Bot está offline há {bot_status_info.get('time_since_last_minutes', 0)} minutos")
             
-            # Tenta acordar o bot fazendo uma requisição ao endpoint do bot (se existir)
-            # Ou força um heartbeat fazendo uma requisição interna
-            try:
-                # Força um "ping" que pode acordar o bot se ele estiver hibernado
-                # O bot deve fazer heartbeat quando receber qualquer requisição
-                pass  # Por enquanto apenas registra
-                results["wake_message"] = "Tentativa de acordar bot iniciada. Aguarde até 3 minutos."
-            except Exception as e:
-                results["wake_error"] = str(e)
+            # Tenta reiniciar o bot via Render API
+            render_api_key = settings.render_api_key
+            render_bot_service_id = settings.render_bot_service_id
+            
+            if render_api_key and render_bot_service_id:
+                try:
+                    import requests
+                    restart_url = f"https://api.render.com/v1/services/{render_bot_service_id}/restart"
+                    headers = {
+                        "Authorization": f"Bearer {render_api_key}",
+                        "Accept": "application/json"
+                    }
+                    
+                    restart_response = requests.post(restart_url, headers=headers, timeout=10)
+                    
+                    if restart_response.status_code == 200:
+                        results["bot_restart"] = "success"
+                        results["wake_message"] = "✅ Bot reiniciado via Render API! Aguarde 1-2 minutos para ele voltar online."
+                    else:
+                        results["bot_restart"] = "failed"
+                        results["wake_error"] = f"Render API retornou {restart_response.status_code}: {restart_response.text}"
+                        results["wake_message"] = "Tentativa de reiniciar bot falhou. Verifique as configurações."
+                except ImportError:
+                    results["bot_restart"] = "error"
+                    results["wake_error"] = "Biblioteca 'requests' não instalada"
+                    results["wake_message"] = "Não foi possível reiniciar bot (biblioteca faltando)."
+                except Exception as e:
+                    results["bot_restart"] = "error"
+                    results["wake_error"] = str(e)
+                    results["wake_message"] = f"Erro ao reiniciar bot: {str(e)}"
+            else:
+                results["bot_restart"] = "not_configured"
+                results["wake_message"] = "Render API não configurada. Configure RENDER_API_KEY e RENDER_BOT_SERVICE_ID no .env"
         
         # 5. Verifica se demorou mais de 3 minutos
         elapsed = (datetime.utcnow() - start_time).total_seconds()

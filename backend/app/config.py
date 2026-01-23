@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     # CORS
     cors_origins: list = ["http://localhost:8080", "http://localhost:3000", "*"]
     
+    # Render API (opcional - para reiniciar bot)
+    render_api_key: str = ""
+    render_bot_service_id: str = ""
+    
     class Config:
         env_file = ".env"
         case_sensitive = False
