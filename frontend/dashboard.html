@@ -194,11 +194,35 @@
         }
 
         // Helper to format time remaining
-        function formatTimeRemaining(prazoFim) {
+        function formatTimeRemaining(prazoFim, prazoHoras, criadoEm) {
             if (!prazoFim) return '-';
             
             const agora = new Date();
             const prazo = new Date(prazoFim);
+            
+            // Se temos prazo_horas e criado_em, recalcular baseado nisso para evitar problemas de timezone
+            if (prazoHoras && criadoEm) {
+                const criado = new Date(criadoEm);
+                const prazoCalculado = new Date(criado.getTime() + (prazoHoras * 60 * 60 * 1000));
+                const diff = prazoCalculado - agora;
+                
+                if (diff <= 0) {
+                    return '<span style="color: var(--danger);">Vencido</span>';
+                }
+                
+                const horas = Math.floor(diff / (1000 * 60 * 60));
+                const minutos = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                
+                if (horas < 1) {
+                    return `<span style="color: var(--danger);">${minutos}m</span>`;
+                } else if (horas < 3) {
+                    return `<span style="color: var(--warning);">${horas}h ${minutos}m</span>`;
+                } else {
+                    return `${horas}h ${minutos}m`;
+                }
+            }
+            
+            // Fallback: usar prazo_fim diretamente
             const diff = prazo - agora;
             
             if (diff <= 0) {
@@ -289,7 +313,7 @@
                             <td><span class="badge badge-${os.status}">${getStatusLabel(os.status)}</span></td>
                             <td>${os.cidade || '-'}</td>
                             <td>${os.prazo_horas ? os.prazo_horas + 'h' : '-'}</td>
-                            <td>${formatTimeRemaining(os.prazo_fim)}</td>
+                            <td>${formatTimeRemaining(os.prazo_fim, os.prazo_horas, os.criado_em)}</td>
                             <td>${os.porta_placa_olt || '-'}</td>
                             <td>${os.tecnico_campo_nome || 'N/A'}</td>
                             <td>${os.tecnico_executor_nome || '-'}</td>
@@ -310,7 +334,7 @@
                         if (os && os.prazo_fim) {
                             const timeCell = row.cells[5];
                             if (timeCell) {
-                                timeCell.innerHTML = formatTimeRemaining(os.prazo_fim);
+                                timeCell.innerHTML = formatTimeRemaining(os.prazo_fim, os.prazo_horas, os.criado_em);
                             }
                         }
                     });
