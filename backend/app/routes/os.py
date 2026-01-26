@@ -190,7 +190,8 @@ def list_os(
             tipo_os=getattr(os, 'tipo_os', 'normal'),
             prazo_horas=getattr(os, 'prazo_horas', None),
             prazo_fim=getattr(os, 'prazo_fim', None),
-            porta_placa_olt=getattr(os, 'porta_placa_olt', None)
+            porta_placa_olt=getattr(os, 'porta_placa_olt', None),
+            concluido_em=os.concluido_em
         )
         for os in results
     ]

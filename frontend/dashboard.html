@@ -194,9 +194,46 @@
         }
 
         // Helper to format time remaining
-        function formatTimeRemaining(prazoFim, prazoHoras, criadoEm) {
+        function formatTimeRemaining(prazoFim, prazoHoras, criadoEm, status, concluidoEm) {
             if (!prazoFim) return '-';
             
+            // Se O.S está finalizada, congelar no tempo em que foi fechada
+            if (status === 'concluido' && concluidoEm) {
+                // Garantir que concluidoEm seja interpretado como UTC
+                let concluidoStr = concluidoEm;
+                if (!concluidoStr.includes('Z') && !concluidoStr.includes('+') && !concluidoStr.includes('-', 10)) {
+                    concluidoStr = concluidoStr + 'Z';
+                }
+                const concluido = new Date(concluidoStr);
+                
+                // Calcular prazo baseado em criadoEm + prazoHoras
+                let criadoStr = criadoEm;
+                if (!criadoStr.includes('Z') && !criadoStr.includes('+') && !criadoStr.includes('-', 10)) {
+                    criadoStr = criadoStr + 'Z';
+                }
+                const criado = new Date(criadoStr);
+                const prazoCalculado = new Date(criado.getTime() + (prazoHoras * 60 * 60 * 1000));
+                
+                // Diferença entre prazo e quando foi concluída
+                const diff = prazoCalculado - concluido;
+                
+                if (diff < 0) {
+                    // Foi concluída após o prazo - mostrar quanto tempo passou
+                    const horasAtraso = Math.floor(Math.abs(diff) / (1000 * 60 * 60));
+                    const minutosAtraso = Math.floor((Math.abs(diff) % (1000 * 60 * 60)) / (1000 * 60));
+                    return `<span style="color: var(--danger);">${horasAtraso}h ${minutosAtraso}m atrasado</span>`;
+                } else {
+                    // Foi concluída antes do prazo - mostrar quanto tempo restava
+                    const horasRestantes = Math.floor(diff / (1000 * 60 * 60));
+                    const minutosRestantes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    if (horasRestantes === 0 && minutosRestantes === 0) {
+                        return '<span style="color: var(--success);">Concluído no prazo</span>';
+                    }
+                    return `<span style="color: var(--success);">${horasRestantes}h ${minutosRestantes}m restantes</span>`;
+                }
+            }
+            
+            // O.S não finalizada - calcular tempo restante normalmente
             const agora = new Date();
             
             // Se temos prazo_horas e criado_em, recalcular baseado nisso para evitar problemas de timezone
@@ -213,7 +250,10 @@
                 const diff = prazoCalculado - agora;
                 
                 if (diff <= 0) {
-                    return '<span style="color: var(--danger);">Vencido</span>';
+                    // Passou do prazo - mostrar quanto tempo passou
+                    const horasAtraso = Math.floor(Math.abs(diff) / (1000 * 60 * 60));
+                    const minutosAtraso = Math.floor((Math.abs(diff) % (1000 * 60 * 60)) / (1000 * 60));
+                    return `<span style="color: var(--danger);">${horasAtraso}h ${minutosAtraso}m atrasado</span>`;
                 }
                 
                 const horas = Math.floor(diff / (1000 * 60 * 60));
@@ -237,7 +277,10 @@
             const diff = prazo - agora;
             
             if (diff <= 0) {
-                return '<span style="color: var(--danger);">Vencido</span>';
+                // Passou do prazo - mostrar quanto tempo passou
+                const horasAtraso = Math.floor(Math.abs(diff) / (1000 * 60 * 60));
+                const minutosAtraso = Math.floor((Math.abs(diff) % (1000 * 60 * 60)) / (1000 * 60));
+                return `<span style="color: var(--danger);">${horasAtraso}h ${minutosAtraso}m atrasado</span>`;
             }
             
             const horas = Math.floor(diff / (1000 * 60 * 60));
@@ -344,7 +387,7 @@
                             <td><span class="badge badge-${os.status}">${getStatusLabel(os.status)}</span></td>
                             <td>${os.cidade || '-'}</td>
                             <td>${os.prazo_horas ? os.prazo_horas + 'h' : '-'}</td>
-                            <td>${formatTimeRemaining(os.prazo_fim, os.prazo_horas, os.criado_em)}</td>
+                            <td>${formatTimeRemaining(os.prazo_fim, os.prazo_horas, os.criado_em, os.status, os.concluido_em)}</td>
                             <td>${formatPortaPlaca(os.porta_placa_olt)}</td>
                             <td>${os.tecnico_campo_nome || 'N/A'}</td>
                             <td>${os.tecnico_executor_nome || '-'}</td>
@@ -357,15 +400,16 @@
                     `).join('');
                 }
                 
-                // Update countdown every minute
+                // Update countdown every minute (apenas para O.S não finalizadas)
                 setInterval(() => {
                     const rows = tbody.querySelectorAll('tr');
                     rows.forEach((row, index) => {
                         const os = osList[index];
-                        if (os && os.prazo_fim) {
+                        // Não atualizar se O.S está finalizada (congelar contador)
+                        if (os && os.prazo_fim && os.status !== 'concluido') {
                             const timeCell = row.cells[5];
                             if (timeCell) {
-                                timeCell.innerHTML = formatTimeRemaining(os.prazo_fim, os.prazo_horas, os.criado_em);
+                                timeCell.innerHTML = formatTimeRemaining(os.prazo_fim, os.prazo_horas, os.criado_em, os.status, os.concluido_em);
                             }
                         }
                     });

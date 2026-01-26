@@ -124,6 +124,7 @@ class OrdemServicoListItem(BaseModel):
     prazo_fim: Optional[datetime] = None
     porta_placa_olt: Optional[str] = None
     criado_em: datetime
+    concluido_em: Optional[datetime] = None  # Para congelar contador quando finalizada
 
     class Config:
         from_attributes = True
