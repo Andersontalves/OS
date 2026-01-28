@@ -137,7 +137,7 @@
                     limit: itemsPerPage,
                     offset: (page - 1) * itemsPerPage
                 };
-                
+
                 if (statusFilter) filters.status = statusFilter;
                 if (searchTerm) filters.search = searchTerm;
 
@@ -244,7 +244,7 @@
             if (totalPages > 1) {
                 const prevBtn = document.getElementById('prev-page-btn');
                 const nextBtn = document.getElementById('next-page-btn');
-                
+
                 if (prevBtn) {
                     prevBtn.addEventListener('click', () => {
                         if (currentPage > 1) {
@@ -252,7 +252,7 @@
                         }
                     });
                 }
-                
+
                 if (nextBtn) {
                     nextBtn.addEventListener('click', () => {
                         if (currentPage < totalPages) {
@@ -425,7 +425,7 @@
                 <form id="finalizar-form">
                     <div class="form-group">
                         <label for="foto-comprovacao">Foto de Comprovação *</label>
-                        <input type="file" id="foto-comprovacao" accept="image/*" capture="environment" required 
+                        <input type="file" id="foto-comprovacao" accept="image/*" required 
                             style="padding: 0.5rem; background: var(--bg-tertiary); border: 2px dashed var(--border); border-radius: var(--radius-md);">
                         <small class="text-muted">Tire uma foto ou selecione do dispositivo</small>
                     </div>
