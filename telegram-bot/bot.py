@@ -280,14 +280,16 @@ async def receive_porta_placa(update: Update, context: ContextTypes.DEFAULT_TYPE
         if num_portas > 1:
             await update.message.reply_text(
                 f"✅ *{num_portas} portas* registradas:\n{porta}\n\n"
-                "4️⃣ Agora envie a foto do *ROMPIMENTO*:",
+                "4️⃣ Agora envie a foto do *ROMPIMENTO*:\n"
+                "💡 _(Use o ícone do clip/anexo para escolher da galeria)_",
                 parse_mode="Markdown",
                 reply_markup=cancel_kb
             )
         else:
             await update.message.reply_text(
                 f"✅ Porta registrada: *{porta}*\n\n"
-                "4️⃣ Agora envie a foto do *ROMPIMENTO*:",
+                "4️⃣ Agora envie a foto do *ROMPIMENTO*:\n"
+                "💡 _(Use o ícone do clip/anexo para escolher da galeria)_",
                 parse_mode="Markdown",
                 reply_markup=cancel_kb
             )
@@ -296,14 +298,16 @@ async def receive_porta_placa(update: Update, context: ContextTypes.DEFAULT_TYPE
         if num_portas > 1:
             await update.message.reply_text(
                 f"✅ *{num_portas} portas* registradas:\n{porta}\n\n"
-                "4️⃣ Agora envie a foto do *LOCAL DA MANUTENÇÃO*:",
+                "4️⃣ Agora envie a foto do *LOCAL DA MANUTENÇÃO*:\n"
+                "💡 _(Use o ícone do clip/anexo para escolher da galeria)_",
                 parse_mode="Markdown",
                 reply_markup=cancel_kb
             )
         else:
             await update.message.reply_text(
                 f"✅ Porta registrada: *{porta}*\n\n"
-                "4️⃣ Agora envie a foto do *LOCAL DA MANUTENÇÃO*:",
+                "4️⃣ Agora envie a foto do *LOCAL DA MANUTENÇÃO*:\n"
+                "💡 _(Use o ícone do clip/anexo para escolher da galeria)_",
                 parse_mode="Markdown",
                 reply_markup=cancel_kb
             )
@@ -313,7 +317,8 @@ async def receive_porta_placa(update: Update, context: ContextTypes.DEFAULT_TYPE
         if num_portas > 1:
             await update.message.reply_text(
                 f"✅ *{num_portas} portas* registradas:\n{porta}\n\n"
-                "4️⃣ Agora envie a foto do *POWER METER*...",
+                "4️⃣ Agora envie a foto do *POWER METER*...\n"
+                "💡 _(Use o ícone do clip/anexo para escolher da galeria)_",
                 parse_mode="Markdown",
                 reply_markup=cancel_kb
             )
@@ -436,7 +441,8 @@ async def receive_motivo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
         f"✅ Motivo: *{motivo}*\n\n"
-        "4️⃣ Agora envie a foto do *POWER METER*...",
+        "4️⃣ Agora envie a foto do *POWER METER*...\n"
+        "💡 _(Use o ícone do clip/anexo para escolher da galeria)_",
         parse_mode="Markdown",
         reply_markup=cancel_kb
     )
@@ -463,14 +469,16 @@ async def receive_power_meter(update: Update, context: ContextTypes.DEFAULT_TYPE
         if tipo_os == "rompimento":
             await update.message.reply_text(
                 "✅ Foto PM recebida!\n\n"
-                "5️⃣ Agora envie a foto do *ROMPIMENTO*:",
+                "5️⃣ Agora envie a foto do *ROMPIMENTO*:\n"
+                "💡 _(Use o ícone do clip/anexo para escolher da galeria)_",
                 parse_mode="Markdown"
             )
             return CAIXA  # Usa mesmo estado, mas será tratado diferente
         elif tipo_os == "manutencao":
             await update.message.reply_text(
                 "✅ Foto PM recebida!\n\n"
-                "5️⃣ Agora envie a foto do *LOCAL DA MANUTENÇÃO*:",
+                "5️⃣ Agora envie a foto do *LOCAL DA MANUTENÇÃO*:\n"
+                "💡 _(Use o ícone do clip/anexo para escolher da galeria)_",
                 parse_mode="Markdown"
             )
             return CAIXA  # Usa mesmo estado, mas será tratado diferente
@@ -478,7 +486,8 @@ async def receive_power_meter(update: Update, context: ContextTypes.DEFAULT_TYPE
             # O.S normal: pedir foto da caixa
             await update.message.reply_text(
                 "✅ Foto PM recebida!\n\n"
-                "5️⃣ Agora envie a foto da *CAIXA*:",
+                "5️⃣ Agora envie a foto da *CAIXA*:\n"
+                "💡 _(Use o ícone do clip/anexo para escolher da galeria)_",
                 parse_mode="Markdown"
             )
             return CAIXA
@@ -528,7 +537,8 @@ async def receive_caixa(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             await update.message.reply_text(
                 "✅ Foto Caixa recebida!\n\n"
-                "6️⃣ Envie o *PRINT da O.S* (nome/end do cliente):",
+                "6️⃣ Envie o *PRINT da O.S* (nome/end do cliente):\n"
+                "💡 _(Use o ícone do clip/anexo para escolher da galeria)_",
                 parse_mode="Markdown"
             )
             return PRINT_OS
